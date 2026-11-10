@@ -28,21 +28,6 @@ class DSB_Admin {
 	const NOTICE_TRANSIENT = 'dsb_notice_';
 
 	/**
-	 * نام آژانس.
-	 */
-	const AGENCY_NAME = 'آژانس دیجیتال مارکتینگ اپتیسان';
-
-	/**
-	 * تلفن آژانس.
-	 */
-	const AGENCY_PHONE = '02188830601';
-
-	/**
-	 * سایت آژانس.
-	 */
-	const AGENCY_SITE = 'https://optisun.ir/';
-
-	/**
 	 * تنظیمات.
 	 *
 	 * @var DSB_Settings
@@ -118,9 +103,11 @@ class DSB_Admin {
 	 * @return void
 	 */
 	public function add_menu() {
+		$title = __( 'ارسال به بله', 'daily-bale-post' );
+
 		add_menu_page(
-			__( 'ارسال به بله', 'daily-bale-post' ) . ' | ' . self::AGENCY_NAME,
-			__( 'ارسال به بله', 'daily-bale-post' ),
+			DSB_Branding::is_enabled() ? $title . ' | ' . DSB_Branding::get( 'name' ) : $title,
+			$title,
 			'manage_options',
 			self::SLUG,
 			array( $this, 'render' ),
@@ -186,14 +173,9 @@ class DSB_Admin {
 	 * @return string
 	 */
 	private function menu_icon() {
-		$path = DSB_PATH . 'assets/optisun-icon.svg';
+		$icon = DSB_Branding::menu_icon();
 
-		if ( ! is_readable( $path ) ) {
-			return 'dashicons-share';
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		return 'data:image/svg+xml;base64,' . base64_encode( file_get_contents( $path ) );
+		return $icon ? $icon : 'dashicons-share';
 	}
 
 	/**
