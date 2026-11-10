@@ -1,0 +1,26 @@
+# بسته‌های ساخته‌شده برای نصب
+*.zip
+
+# فایل‌های موقت و پشتیبان
+*.bak
+*.log
+*.tmp
+*~
+
+# سیستم‌عامل
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ویرایشگرها
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# وابستگی‌ها
+node_modules/
+vendor/
+
+# تنظیمات محلی
+.env
