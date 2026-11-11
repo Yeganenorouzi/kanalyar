@@ -14,6 +14,8 @@ $ky_rows      = $this->destinations_list();
 $ky_platforms = KY_Messenger::platforms();
 ?>
 
+<?php KY_Help::render( 'destinations', ! $this->all_destinations() ); ?>
+
 <form method="post" action="<?php echo esc_url( $ky_endpoint ); ?>">
 	<?php wp_nonce_field( KY_Admin::NONCE ); ?>
 	<input type="hidden" name="action" value="ky_handle">
@@ -23,7 +25,7 @@ $ky_platforms = KY_Messenger::platforms();
 		<h2><span class="ky-h2-icon">🔌</span> <?php esc_html_e( 'کانال‌های مقصد', 'kanalyar' ); ?></h2>
 
 		<p class="description ky-intro">
-			<?php esc_html_e( 'هر کانالی که می‌خواهید محتوا در آن منتشر شود را اینجا اضافه کنید. بات باید ادمین کانال باشد. بعد در تب «قوانین انتشار» مشخص می‌کنید چه محتوایی به کدام کانال برود.', 'kanalyar' ); ?>
+			<?php esc_html_e( 'هر کانالی که می‌خواهید محتوا در آن منتشر شود را اینجا اضافه کنید. بعد در تب «قوانین انتشار» مشخص می‌کنید چه محتوایی به کدام کانال برود.', 'kanalyar' ); ?>
 		</p>
 
 		<div class="ky-repeat" data-repeat="destinations">
@@ -38,6 +40,7 @@ $ky_platforms = KY_Messenger::platforms();
 							<input type="checkbox" name="ky[destinations][<?php echo esc_attr( $ky_i ); ?>][enabled]" value="1" <?php checked( $ky_row['enabled'], 1 ); ?>>
 							<?php esc_html_e( 'فعال', 'kanalyar' ); ?>
 						</label>
+						<span class="ky-hint ky-hint--inline"><?php echo esc_html( KY_Help::field( 'destination', 'enabled' ) ); ?></span>
 						<button type="button" class="button-link ky-remove" aria-label="<?php esc_attr_e( 'حذف این مقصد', 'kanalyar' ); ?>">🗑️ <?php esc_html_e( 'حذف', 'kanalyar' ); ?></button>
 					</div>
 
@@ -58,12 +61,14 @@ $ky_platforms = KY_Messenger::platforms();
 							<input type="text" name="ky[destinations][<?php echo esc_attr( $ky_i ); ?>][label]"
 								value="<?php echo esc_attr( $ky_row['label'] ); ?>"
 								placeholder="<?php esc_attr_e( 'مثلاً کانال فروشگاه', 'kanalyar' ); ?>">
+						<?php KY_Help::hint( 'destination', 'label' ); ?>
 						</label>
 
 						<label>
 							<span><?php esc_html_e( 'آیدی کانال', 'kanalyar' ); ?></span>
 							<input type="text" name="ky[destinations][<?php echo esc_attr( $ky_i ); ?>][chat_id]"
 								value="<?php echo esc_attr( $ky_row['chat_id'] ); ?>" dir="ltr" placeholder="@yourchannel">
+						<?php KY_Help::hint( 'destination', 'chat_id' ); ?>
 						</label>
 
 						<label class="ky-grid-wide">
@@ -71,6 +76,7 @@ $ky_platforms = KY_Messenger::platforms();
 							<input type="text" name="ky[destinations][<?php echo esc_attr( $ky_i ); ?>][token]"
 								value="<?php echo esc_attr( $ky_row['token'] ); ?>" dir="ltr"
 								autocomplete="off" placeholder="123456:ABC...">
+						<?php KY_Help::hint( 'destination', 'token' ); ?>
 						</label>
 					</div>
 

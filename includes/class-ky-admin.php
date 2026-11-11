@@ -15,7 +15,7 @@ class KY_Admin {
 	/**
 	 * شناسه‌ی صفحه.
 	 */
-	const SLUG = 'kanalyar';
+	const SLUG = KY_PAGE;
 
 	/**
 	 * اکشن نانس.
@@ -656,6 +656,24 @@ class KY_Admin {
 		$tab    = $this->current_tab();
 
 		include KY_PATH . 'includes/views/page.php';
+	}
+
+	/**
+	 * آیا حداقل یک قانون کامل و آماده‌ی اجرا وجود دارد.
+	 *
+	 * @return bool
+	 */
+	public function rules_ready() {
+		return (bool) $this->rules->active();
+	}
+
+	/**
+	 * آیا تا به حال ارسال موفقی ثبت شده است.
+	 *
+	 * @return bool
+	 */
+	public function has_any_success() {
+		return null !== $this->logger->last_success();
 	}
 
 	/**

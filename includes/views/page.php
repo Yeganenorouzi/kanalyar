@@ -45,6 +45,8 @@ $ky_endpoint = admin_url( 'admin-post.php' );
 		</div>
 	<?php endif; ?>
 
+	<?php require KY_PATH . 'includes/views/partials/onboarding.php'; ?>
+
 	<?php require KY_PATH . 'includes/views/partials/health.php'; ?>
 
 	<nav class="ky-tabs">

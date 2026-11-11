@@ -13,6 +13,8 @@ defined( 'ABSPATH' ) || exit;
 $ky_log = $this->log_rows();
 ?>
 
+<?php KY_Help::render( 'log' ); ?>
+
 <div class="ky-card ky-card--history">
 	<h2><span class="ky-h2-icon">🗂️</span> <?php esc_html_e( 'تاریخچه‌ی ارسال', 'kanalyar' ); ?></h2>
 

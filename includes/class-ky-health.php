@@ -213,7 +213,7 @@ class KY_Health {
 	private function send_alert( $days ) {
 		$site  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$last  = $this->logger->last();
-		$panel = admin_url( 'admin.php?page=' . KY_Admin::SLUG );
+		$panel = admin_url( 'admin.php?page=' . KY_PAGE );
 
 		/* translators: %s: نام سایت. */
 		$subject = sprintf( __( '[%s] انتشار خودکار انجام نشده است', 'kanalyar' ), $site );

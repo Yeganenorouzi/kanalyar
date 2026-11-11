@@ -4,7 +4,7 @@
  * Plugin Name (en):  Kanalyar
  * Plugin URI:        https://github.com/Yeganenorouzi/kanalyar
  * Description:       انتشار خودکار محتوای سایت و اعلان وضعیت سفارش ووکامرس در کانال‌های بله، تلگرام و ایتا — با قوانین مستقل، زمان‌بندی مقاوم و پایش سلامت.
- * Version:           6.1.0
+ * Version:           6.2.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Yegane Norouzi
@@ -19,11 +19,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'KY_VERSION', '6.1.0' );
+define( 'KY_VERSION', '6.2.0' );
 define( 'KY_FILE', __FILE__ );
 define( 'KY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KY_URL', plugin_dir_url( __FILE__ ) );
 define( 'KY_BASENAME', plugin_basename( __FILE__ ) );
+
+// اسلاگ صفحه‌ی پنل. اینجا تعریف شده تا لایه‌های غیرمدیریتی هم بدون
+// وابستگی به کلاس پنل بتوانند نشانی صفحه را بسازند.
+define( 'KY_PAGE', 'kanalyar' );
 
 require_once KY_PATH . 'includes/class-ky-plugin.php';
 

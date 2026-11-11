@@ -13,6 +13,8 @@ defined( 'ABSPATH' ) || exit;
 $s = $this->settings_all();
 ?>
 
+<?php KY_Help::render( 'settings' ); ?>
+
 <form method="post" action="<?php echo esc_url( $ky_endpoint ); ?>">
 	<?php wp_nonce_field( KY_Admin::NONCE ); ?>
 	<input type="hidden" name="action" value="ky_handle">
@@ -28,7 +30,7 @@ $s = $this->settings_all();
 						<input type="checkbox" name="ky[settings][enabled]" value="1" <?php checked( $s['enabled'], 1 ); ?>>
 						<?php esc_html_e( 'انتشار خودکار فعال باشد', 'kanalyar' ); ?>
 					</label>
-					<p class="description"><?php esc_html_e( 'با برداشتن این تیک، همه‌ی قوانین موقتاً متوقف می‌شوند.', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'settings', 'enabled', 'span' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -36,14 +38,14 @@ $s = $this->settings_all();
 				<td>
 					<input type="text" name="ky[settings][phone]" id="ky_phone" value="<?php echo esc_attr( $s['phone'] ); ?>"
 						class="regular-text" dir="ltr" placeholder="09120000000">
-					<p class="description"><?php esc_html_e( 'برای محصولات بدون قیمت، به‌جای قیمت «استعلام قیمت» با این شماره نمایش داده می‌شود.', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'settings', 'phone', 'span' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th scope="row"><label for="ky_retries"><?php esc_html_e( 'تکرار درخواست شبکه', 'kanalyar' ); ?></label></th>
 				<td>
 					<input type="number" name="ky[settings][retries]" id="ky_retries" min="0" max="5" value="<?php echo esc_attr( $s['retries'] ); ?>" class="small-text">
-					<p class="description"><?php esc_html_e( 'در صورت قطعی لحظه‌ای شبکه، هر درخواست تا این تعداد دوباره فرستاده می‌شود.', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'settings', 'retries', 'span' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -59,10 +61,11 @@ $s = $this->settings_all();
 						<input type="checkbox" name="ky[settings][alerts]" value="1" <?php checked( $s['alerts'], 1 ); ?>>
 						<?php esc_html_e( 'اگر دو روز هیچ پستی ارسال نشد، ایمیل هشدار بفرست', 'kanalyar' ); ?>
 					</label>
+					<?php KY_Help::hint( 'settings', 'alerts' ); ?>
 					<br><br>
 					<input type="email" name="ky[settings][alert_email]" value="<?php echo esc_attr( $s['alert_email'] ); ?>"
 						class="regular-text" dir="ltr" placeholder="<?php echo esc_attr( get_option( 'admin_email' ) ); ?>">
-					<p class="description"><?php esc_html_e( 'خالی بگذارید تا به ایمیل مدیر سایت برود. حداکثر روزی یک ایمیل.', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'settings', 'alert_email', 'span' ); ?></p>
 				</td>
 			</tr>
 		</table>

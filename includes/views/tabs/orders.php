@@ -37,6 +37,8 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 	</div>
 <?php endif; ?>
 
+<?php KY_Help::render( 'orders', empty( $ky_orders['enabled'] ) ); ?>
+
 <form method="post" action="<?php echo esc_url( $ky_endpoint ); ?>">
 	<?php wp_nonce_field( KY_Admin::NONCE ); ?>
 	<input type="hidden" name="action" value="ky_handle">
@@ -64,6 +66,7 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 						<input type="checkbox" name="ky[orders][enabled]" value="1" <?php checked( $ky_orders['enabled'], 1 ); ?>>
 						<?php esc_html_e( 'اعلان وضعیت سفارش ارسال شود', 'kanalyar' ); ?>
 					</label>
+					<?php KY_Help::hint( 'orders', 'enabled' ); ?>
 				</td>
 			</tr>
 
@@ -86,6 +89,7 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 							</label>
 						<?php endforeach; ?>
 					</div>
+					<?php KY_Help::hint( 'orders', 'destinations' ); ?>
 				</td>
 			</tr>
 
@@ -99,7 +103,7 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 							<?php echo esc_html( $ky_label ); ?>
 						</label>
 					<?php endforeach; ?>
-					<p class="description"><?php esc_html_e( 'هر سفارش برای هر وضعیت فقط یک‌بار اعلان می‌گیرد.', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'orders', 'statuses', 'span' ); ?></p>
 				</td>
 			</tr>
 
@@ -110,11 +114,13 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 						<input type="checkbox" name="ky[orders][customer_info]" value="1" <?php checked( $ky_orders['customer_info'], 1 ); ?>>
 						<?php esc_html_e( 'اطلاعات مشتری (نام، تلفن، نشانی) در اعلان بیاید', 'kanalyar' ); ?>
 					</label>
+					<?php KY_Help::hint( 'orders', 'customer_info' ); ?>
 					<br>
 					<label>
 						<input type="checkbox" name="ky[orders][silent]" value="1" <?php checked( $ky_orders['silent'], 1 ); ?>>
 						<?php esc_html_e( 'ارسال بی‌صدا (بدون اعلان روی گوشی)', 'kanalyar' ); ?>
 					</label>
+					<?php KY_Help::hint( 'orders', 'silent' ); ?>
 				</td>
 			</tr>
 
@@ -123,7 +129,8 @@ $ky_has_wc       = function_exists( 'wc_get_order' );
 				<td class="ky-template">
 					<textarea name="ky[orders][template]" rows="10"
 						placeholder="<?php echo esc_attr( KY_Orders::default_template() ); ?>"><?php echo esc_textarea( $ky_orders['template'] ); ?></textarea>
-					<p class="description"><?php esc_html_e( 'خالی بگذارید تا قالب پیش‌فرض استفاده شود. جای‌نشان‌های موجود:', 'kanalyar' ); ?></p>
+					<p class="description"><?php KY_Help::hint( 'orders', 'template', 'span' ); ?></p>
+					<p class="description"><?php esc_html_e( 'جای‌نشان‌های موجود (روی هرکدام نگه دارید تا توضیحش را ببینید):', 'kanalyar' ); ?></p>
 					<div class="ky-tokens">
 						<?php foreach ( KY_Orders::placeholders() as $ky_token => $ky_desc ) : ?>
 							<code class="ky-token" title="<?php echo esc_attr( $ky_desc ); ?>"><?php echo esc_html( $ky_token ); ?></code>
