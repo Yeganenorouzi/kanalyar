@@ -169,15 +169,18 @@ daily-bale-post/
 
 ### ساخت پروفایل
 
-یک پوشه با نام برندتان در `branding/` بسازید:
+پوشه‌ی `branding/example/` را کپی کنید و نام برندتان را روی کپی بگذارید:
 
 ```
 branding/
-└── my-agency/
+├── example/          ← نمونه‌ی مستندسازی
+└── my-agency/        ← برند شما (در .gitignore است)
     ├── profile.php
     ├── logo.svg
     └── icon.svg
 ```
+
+پوشه‌های برندینگ جز `example/` در `.gitignore` هستند، تا برند خصوصی‌تان وارد مخزن عمومی نشود.
 
 `profile.php` فقط یک آرایه برمی‌گرداند:
 

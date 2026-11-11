@@ -143,6 +143,11 @@ $profiles = glob( $root . '/branding/*/profile.php' );
 foreach ( $profiles as $profile ) {
 	$name = basename( dirname( $profile ) );
 
+	// پروفایل نمونه فقط برای مستندسازی است.
+	if ( 'example' === $name ) {
+		continue;
+	}
+
 	// فقط فایل‌های همین پروفایل، نه پروفایل‌های دیگر.
 	$files = array_values(
 		array_filter(
