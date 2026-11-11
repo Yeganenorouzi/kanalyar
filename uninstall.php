@@ -39,6 +39,7 @@ $ky_options = array(
 	'dsb_installed_at',
 	'dsb_destinations',
 	'dsb_rules',
+	'dsb_orders',
 	// آپشن‌های نسخه‌های پیش از ۴.
 	'dsb_token',
 	'dsb_channel',

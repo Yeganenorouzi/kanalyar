@@ -94,54 +94,12 @@ class KY_Message {
 
 		return array(
 			'title'        => $title,
-			'text'         => $this->render( $template, $vars, true ),
-			'plain'        => $this->render( $template, $vars, false ),
+			'text'         => KY_Template::render( $template, $vars, true ),
+			'plain'        => KY_Template::render( $template, $vars, false ),
 			'reply_markup' => array( 'inline_keyboard' => $buttons ),
 			'photo_url'    => $this->photo_url( $post ),
 			'photo_path'   => $this->photo_path( $post ),
 		);
-	}
-
-	/**
-	 * جای‌گذاری جای‌نشان‌ها در قالب.
-	 *
-	 * @param string $template قالب.
-	 * @param array  $vars     مقادیر، هر کدام با دو نسخه‌ی md و plain.
-	 * @param bool   $markdown آیا خروجی مارک‌داون باشد.
-	 * @return string
-	 */
-	private function render( $template, array $vars, $markdown ) {
-		$sentinels = array();
-		$values    = array();
-		$index     = 0;
-
-		/*
-		 * مقادیر ابتدا با یک نشانه‌ی میانی جایگزین می‌شوند تا پاک‌سازیِ
-		 * نشانه‌های مارک‌داونِ قالب به محتوای خودِ مقادیر دست نزند.
-		 * بدون این کار، زیرخطِ داخل هشتگ‌ها هم حذف می‌شد.
-		 */
-		foreach ( $vars as $key => $pair ) {
-			$token = "\x00" . $index . "\x00";
-
-			$sentinels[ $key ] = $token;
-			$values[ $token ]  = $markdown ? $pair['md'] : $pair['plain'];
-			$index++;
-		}
-
-		$text = strtr( $template, $sentinels );
-
-		if ( ! $markdown ) {
-			// نشانه‌های مارک‌داونِ خودِ قالب در حالت ساده معنی ندارند.
-			$text = preg_replace( '/[*_`]/u', '', $text );
-		}
-
-		$text = strtr( $text, $values );
-
-		// جای‌نشان‌های خالی نباید خط سفید جا بگذارند.
-		$text = preg_replace( "/[ \t]+\n/", "\n", $text );
-		$text = preg_replace( "/\n{3,}/", "\n\n", $text );
-
-		return trim( $text );
 	}
 
 	/**
@@ -156,23 +114,23 @@ class KY_Message {
 	private function vars( WP_Post $post, array $rule, $title, $url ) {
 		$vars = array();
 
-		$vars['{title}'] = self::pair( $title );
+		$vars['{title}'] = KY_Template::pair( $title );
 		$vars['{link}']  = array(
 			'md'    => $this->link_value( $url ),
 			'plain' => $url,
 		);
 
-		$vars['{excerpt}'] = self::pair( $this->body( $post, $rule ) );
-		$vars['{site}']    = self::pair( wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
-		$vars['{phone}']   = self::pair( trim( (string) $this->settings->get( 'phone' ) ) );
-		$vars['{author}']  = self::pair( get_the_author_meta( 'display_name', $post->post_author ) );
-		$vars['{date}']    = self::pair( get_the_date( '', $post ) );
+		$vars['{excerpt}'] = KY_Template::pair( $this->body( $post, $rule ) );
+		$vars['{site}']    = KY_Template::pair( wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$vars['{phone}']   = KY_Template::pair( trim( (string) $this->settings->get( 'phone' ) ) );
+		$vars['{author}']  = KY_Template::pair( get_the_author_meta( 'display_name', $post->post_author ) );
+		$vars['{date}']    = KY_Template::pair( get_the_date( '', $post ) );
 
 		$terms = $this->terms( $post );
 
-		$vars['{categories}'] = self::pair( implode( '، ', $terms['categories'] ) );
-		$vars['{tags}']       = self::pair( implode( '، ', $terms['tags'] ) );
-		$vars['{hashtags}']   = self::pair( $this->hashtags( $terms, $rule ) );
+		$vars['{categories}'] = KY_Template::pair( implode( '، ', $terms['categories'] ) );
+		$vars['{tags}']       = KY_Template::pair( implode( '، ', $terms['tags'] ) );
+		$vars['{hashtags}']   = KY_Template::pair( $this->hashtags( $terms, $rule ) );
 
 		return array_merge( $vars, $this->commerce_vars( $post, $rule ) );
 	}
@@ -186,13 +144,13 @@ class KY_Message {
 	 */
 	private function commerce_vars( WP_Post $post, array $rule ) {
 		$empty = array(
-			'{price}'         => self::pair( '' ),
-			'{price_amount}'  => self::pair( '' ),
-			'{regular_price}' => self::pair( '' ),
-			'{sale_price}'    => self::pair( '' ),
-			'{discount}'      => self::pair( '' ),
-			'{sku}'           => self::pair( '' ),
-			'{stock}'         => self::pair( '' ),
+			'{price}'         => KY_Template::pair( '' ),
+			'{price_amount}'  => KY_Template::pair( '' ),
+			'{regular_price}' => KY_Template::pair( '' ),
+			'{sale_price}'    => KY_Template::pair( '' ),
+			'{discount}'      => KY_Template::pair( '' ),
+			'{sku}'           => KY_Template::pair( '' ),
+			'{stock}'         => KY_Template::pair( '' ),
 		);
 
 		if ( ! $this->is_product( $post ) ) {
@@ -208,8 +166,8 @@ class KY_Message {
 		$show  = ! empty( $rule['show_price'] );
 		$phone = trim( (string) $this->settings->get( 'phone' ) );
 
-		$empty['{sku}']   = self::pair( (string) $product->get_sku() );
-		$empty['{stock}'] = self::pair(
+		$empty['{sku}']   = KY_Template::pair( (string) $product->get_sku() );
+		$empty['{stock}'] = KY_Template::pair(
 			$product->is_in_stock()
 				? __( 'موجود', 'kanalyar' )
 				: __( 'ناموجود', 'kanalyar' )
@@ -222,19 +180,19 @@ class KY_Message {
 
 			if ( $show && $min > 0 ) {
 				if ( $max > $min ) {
-					$line = '💰 قیمت: از ' . self::money( $min ) . ' تا ' . self::money( $max ) . ' تومان';
-					$empty['{price}'] = self::raw( $line, $line );
+					$line = '💰 قیمت: از ' . KY_Template::money( $min ) . ' تا ' . KY_Template::money( $max ) . ' تومان';
+					$empty['{price}'] = KY_Template::raw( $line, $line );
 				} else {
-					$empty['{price}'] = self::raw(
-						'💰 قیمت: *' . self::money( $min ) . '* تومان',
-						'💰 قیمت: ' . self::money( $min ) . ' تومان'
+					$empty['{price}'] = KY_Template::raw(
+						'💰 قیمت: *' . KY_Template::money( $min ) . '* تومان',
+						'💰 قیمت: ' . KY_Template::money( $min ) . ' تومان'
 					);
 				}
 
-				$empty['{price_amount}'] = self::pair( self::money( $min ) );
+				$empty['{price_amount}'] = KY_Template::pair( KY_Template::money( $min ) );
 			} elseif ( $phone ) {
-				$empty['{price}'] = self::raw(
-					'📞 استعلام قیمت: ' . self::escape( $phone ),
+				$empty['{price}'] = KY_Template::raw(
+					'📞 استعلام قیمت: ' . KY_Template::escape( $phone ),
 					'📞 استعلام قیمت: ' . $phone
 				);
 			}
@@ -246,35 +204,37 @@ class KY_Message {
 		$regular = (float) $product->get_regular_price();
 		$sale    = (float) $product->get_sale_price();
 
-		$empty['{regular_price}'] = self::pair( $regular > 0 ? self::money( $regular ) : '' );
-		$empty['{sale_price}']    = self::pair( $sale > 0 ? self::money( $sale ) : '' );
+		$empty['{regular_price}'] = KY_Template::pair( $regular > 0 ? KY_Template::money( $regular ) : '' );
+		$empty['{sale_price}']    = KY_Template::pair( $sale > 0 ? KY_Template::money( $sale ) : '' );
 
 		if ( $show && $product->is_on_sale() && $sale > 0 && $regular > $sale ) {
 			$percent = (int) round( ( ( $regular - $sale ) / $regular ) * 100 );
 
-			$empty['{discount}']     = self::pair( (string) $percent );
-			$empty['{price_amount}'] = self::pair( self::money( $sale ) );
-			$empty['{price}']        = self::raw(
-				'💰 قیمت: ' . self::money( $regular ) . ' تومان' . "\n"
-				. '🔥 با ' . $percent . '٪ تخفیف: *' . self::money( $sale ) . '* تومان'
+			$empty['{discount}']     = KY_Template::pair( (string) $percent );
+			$empty['{price_amount}'] = KY_Template::pair( KY_Template::money( $sale ) );
+			$empty['{price}']        = KY_Template::raw(
+				'💰 قیمت: ' . KY_Template::money( $regular ) . ' تومان' . "\n"
+				. '🔥 با ' . $percent . '٪ تخفیف: *' . KY_Template::money( $sale ) . '* تومان',
+				'💰 قیمت: ' . KY_Template::money( $regular ) . ' تومان' . "\n"
+				. '🔥 با ' . $percent . '٪ تخفیف: ' . KY_Template::money( $sale ) . ' تومان'
 			);
 
 			return $empty;
 		}
 
 		if ( $show && '' !== $price && (float) $price > 0 ) {
-			$empty['{price_amount}'] = self::pair( self::money( (float) $price ) );
-			$empty['{price}']        = self::raw(
-				'💰 قیمت: *' . self::money( (float) $price ) . '* تومان',
-				'💰 قیمت: ' . self::money( (float) $price ) . ' تومان'
+			$empty['{price_amount}'] = KY_Template::pair( KY_Template::money( (float) $price ) );
+			$empty['{price}']        = KY_Template::raw(
+				'💰 قیمت: *' . KY_Template::money( (float) $price ) . '* تومان',
+				'💰 قیمت: ' . KY_Template::money( (float) $price ) . ' تومان'
 			);
 
 			return $empty;
 		}
 
 		if ( $phone ) {
-			$empty['{price}'] = self::raw(
-				'📞 استعلام قیمت: ' . self::escape( $phone ),
+			$empty['{price}'] = KY_Template::raw(
+				'📞 استعلام قیمت: ' . KY_Template::escape( $phone ),
 				'📞 استعلام قیمت: ' . $phone
 			);
 		}
@@ -448,7 +408,7 @@ class KY_Message {
 			return '[' . __( 'مشاهده در سایت', 'kanalyar' ) . '](' . $url . ')';
 		}
 
-		return self::escape( $url );
+		return KY_Template::escape( $url );
 	}
 
 	/**
@@ -521,62 +481,14 @@ class KY_Message {
 	}
 
 	/**
-	 * ساخت جفتِ «مارک‌داون / ساده» از یک مقدار پویا.
-	 *
-	 * نسخه‌ی مارک‌داون خنثی‌سازی می‌شود تا نشانه‌های داخل متن
-	 * قالب‌بندی پیام را نشکنند.
-	 *
-	 * @param string $value مقدار.
-	 * @return array{md:string,plain:string}
-	 */
-	private static function pair( $value ) {
-		$value = (string) $value;
-
-		return array(
-			'md'    => self::escape( $value ),
-			'plain' => $value,
-		);
-	}
-
-	/**
-	 * مقداری که خودش مارک‌داون دارد و نباید خنثی شود.
-	 *
-	 * @param string $value مقدار.
-	 * @return array{md:string,plain:string}
-	 */
-	private static function raw( $value ) {
-		$value = (string) $value;
-
-		return array(
-			'md'    => $value,
-			'plain' => str_replace( array( '\\*', '\\_', '*', '_' ), array( '*', '_', '', '' ), $value ),
-		);
-	}
-
-	/**
-	 * قالب‌بندی عدد قیمت.
-	 *
-	 * @param float $amount مبلغ.
-	 * @return string
-	 */
-	private static function money( $amount ) {
-		return number_format( (float) $amount, 0, '.', ',' );
-	}
-
-	/**
 	 * خنثی‌کردن کاراکترهای مارک‌داون در متن پویا.
 	 *
-	 * بدون این کار، عنوانی که _ یا * دارد باعث خطای
-	 * «can't parse entities» و ازدست‌رفتن کل پست می‌شود.
+	 * برای سازگاری با کدهای بیرونی نگه داشته شده؛ پیاده‌سازی در KY_Template است.
 	 *
 	 * @param string $text متن.
 	 * @return string
 	 */
 	public static function escape( $text ) {
-		return str_replace(
-			array( '\\', '*', '_', '`', '[', ']' ),
-			array( '\\\\', '\*', '\_', '\`', '\[', '\]' ),
-			(string) $text
-		);
+		return KY_Template::escape( $text );
 	}
 }

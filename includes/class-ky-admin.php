@@ -77,6 +77,13 @@ class KY_Admin {
 	private $health;
 
 	/**
+	 * اعلان سفارش.
+	 *
+	 * @var KY_Orders
+	 */
+	private $orders;
+
+	/**
 	 * سازنده.
 	 *
 	 * @param KY_Settings     $settings     تنظیمات.
@@ -86,6 +93,7 @@ class KY_Admin {
 	 * @param KY_Publisher    $publisher    انتشاردهنده.
 	 * @param KY_Scheduler    $scheduler    زمان‌بند.
 	 * @param KY_Health       $health       پایش سلامت.
+	 * @param KY_Orders       $orders       اعلان سفارش.
 	 */
 	public function __construct(
 		KY_Settings $settings,
@@ -94,7 +102,8 @@ class KY_Admin {
 		KY_Rules $rules,
 		KY_Publisher $publisher,
 		KY_Scheduler $scheduler,
-		KY_Health $health
+		KY_Health $health,
+		KY_Orders $orders
 	) {
 		$this->settings     = $settings;
 		$this->logger       = $logger;
@@ -103,6 +112,7 @@ class KY_Admin {
 		$this->publisher    = $publisher;
 		$this->scheduler    = $scheduler;
 		$this->health       = $health;
+		$this->orders       = $orders;
 	}
 
 	/**
@@ -126,6 +136,7 @@ class KY_Admin {
 		return array(
 			'rules'        => __( 'قوانین انتشار', 'kanalyar' ),
 			'destinations' => __( 'مقصدها', 'kanalyar' ),
+			'orders'       => __( 'اعلان سفارش', 'kanalyar' ),
 			'settings'     => __( 'تنظیمات', 'kanalyar' ),
 			'log'          => __( 'تاریخچه', 'kanalyar' ),
 		);
@@ -252,6 +263,14 @@ class KY_Admin {
 				$this->save_settings( (array) ( $raw['settings'] ?? array() ) );
 				break;
 
+			case 'save_orders':
+				$this->save_orders( (array) ( $raw['orders'] ?? array() ) );
+				break;
+
+			case 'test_order':
+				$this->test_order();
+				break;
+
 			case 'test_rule':
 				$this->test_rule( $target );
 				break;
@@ -345,6 +364,80 @@ class KY_Admin {
 			'success',
 			__( 'تنظیمات ذخیره شد', 'kanalyar' ),
 			__( 'تنظیمات کلی ذخیره شد و زمان‌بندی به‌روز شد.', 'kanalyar' )
+		);
+	}
+
+	/**
+	 * ذخیره‌ی تنظیمات اعلان سفارش.
+	 *
+	 * @param array $raw داده‌ی خام.
+	 * @return void
+	 */
+	private function save_orders( array $raw ) {
+		$this->orders->save( $this->orders->sanitize( $raw ) );
+
+		$this->notice(
+			'success',
+			__( 'اعلان سفارش ذخیره شد', 'kanalyar' ),
+			$this->orders->is_active()
+				? __( 'اعلان‌ها فعال‌اند و با تغییر وضعیت سفارش ارسال می‌شوند.', 'kanalyar' )
+				: __( 'تنظیمات ذخیره شد، ولی اعلان هنوز فعال نیست؛ کلید، مقصد و وضعیت‌ها را بررسی کنید.', 'kanalyar' )
+		);
+	}
+
+	/**
+	 * اعلان تستی روی آخرین سفارش فروشگاه.
+	 *
+	 * @return void
+	 */
+	private function test_order() {
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			$this->notice( 'error', __( 'ووکامرس فعال نیست', 'kanalyar' ), __( 'برای اعلان سفارش، ووکامرس باید فعال باشد.', 'kanalyar' ) );
+			return;
+		}
+
+		$found = wc_get_orders(
+			array(
+				'limit'   => 1,
+				'orderby' => 'date',
+				'order'   => 'DESC',
+			)
+		);
+
+		if ( ! $found ) {
+			$this->notice( 'error', __( 'سفارشی پیدا نشد', 'kanalyar' ), __( 'فروشگاه هنوز هیچ سفارشی ندارد تا اعلان تستی ساخته شود.', 'kanalyar' ) );
+			return;
+		}
+
+		$order   = $found[0];
+		$results = $this->orders->notify( $order->get_id(), $order->get_status() );
+
+		if ( ! $results ) {
+			$this->notice( 'error', __( 'ارسال نشد', 'kanalyar' ), __( 'هیچ مقصد فعالی برای اعلان سفارش انتخاب نشده است.', 'kanalyar' ) );
+			return;
+		}
+
+		$ok    = 0;
+		$lines = array();
+
+		foreach ( $results as $row ) {
+			if ( $row['ok'] ) {
+				$ok++;
+			}
+
+			$lines[] = $row['destination'] . ' — ' . $row['message'];
+		}
+
+		$this->notice(
+			$ok ? 'success' : 'error',
+			$ok ? __( 'اعلان تستی ارسال شد', 'kanalyar' ) : __( 'اعلان تستی ناموفق بود', 'kanalyar' ),
+			sprintf(
+				/* translators: %s: شماره سفارش. */
+				__( 'بر اساس آخرین سفارش فروشگاه (%s).', 'kanalyar' ),
+				$order->get_order_number()
+			),
+			implode( "
+", $lines )
 		);
 	}
 
@@ -563,6 +656,24 @@ class KY_Admin {
 		$tab    = $this->current_tab();
 
 		include KY_PATH . 'includes/views/page.php';
+	}
+
+	/**
+	 * تنظیمات اعلان سفارش، برای نماها.
+	 *
+	 * @return array
+	 */
+	public function orders_config() {
+		return $this->orders->config();
+	}
+
+	/**
+	 * آیا اعلان سفارش فعال است.
+	 *
+	 * @return bool
+	 */
+	public function orders_active() {
+		return $this->orders->is_active();
 	}
 
 	/**

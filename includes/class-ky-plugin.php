@@ -74,6 +74,13 @@ final class KY_Plugin {
 	public $health;
 
 	/**
+	 * اعلان وضعیت سفارش.
+	 *
+	 * @var KY_Orders
+	 */
+	public $orders;
+
+	/**
 	 * محرک انتشار فوری.
 	 *
 	 * @var KY_Trigger
@@ -154,6 +161,7 @@ final class KY_Plugin {
 		$this->health       = new KY_Health( $this->settings, $this->logger, $this->rules );
 		$this->scheduler    = new KY_Scheduler( $this->settings, $this->rules, $this->publisher, $this->health );
 		$this->trigger      = new KY_Trigger( $this->settings, $this->rules, $this->publisher );
+		$this->orders       = new KY_Orders( $this->settings, $this->destinations, $this->logger );
 
 		if ( is_admin() ) {
 			$this->metabox = new KY_Metabox( $this->rules, $this->destinations, $this->trigger );
@@ -165,7 +173,8 @@ final class KY_Plugin {
 				$this->rules,
 				$this->publisher,
 				$this->scheduler,
-				$this->health
+				$this->health,
+				$this->orders
 			);
 		}
 	}
@@ -181,6 +190,7 @@ final class KY_Plugin {
 
 		$this->scheduler->register_hooks();
 		$this->trigger->register_hooks();
+		$this->orders->register_hooks();
 
 		if ( $this->metabox ) {
 			$this->metabox->register_hooks();
