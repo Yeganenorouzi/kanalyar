@@ -1,6 +1,6 @@
 <?php
 /**
- * زمان‌بندی مقاوم ارسال روزانه.
+ * زمان‌بندی مقاوم، روی چند قانون مستقل.
  *
  * @package DailyBalePost
  */
@@ -9,7 +9,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * به‌جای یک رویداد روزانه‌ی تک‌شلیکی، یک «تیک» کوتاه‌فاصله داریم که
- * می‌پرسد «امروز پست رفته یا نه». این الگو سه ضعف نسخه‌ی قبل را برطرف می‌کند:
+ * برای هر قانون می‌پرسد «امروز پستش رفته یا نه». این الگو سه ضعف
+ * نسخه‌های قدیمی را برطرف می‌کند:
  *
  * ۱. اگر رویداد کران از صف وردپرس گم شود، خودش دوباره ثبتش می‌کند.
  * ۲. اگر WP-Cron اصلاً اجرا نشود، بازدیدهای عادی سایت همان بررسی را انجام می‌دهند.
@@ -38,9 +39,9 @@ class DSB_Scheduler {
 	const INTERVAL_SECONDS = 300;
 
 	/**
-	 * آپشن وضعیت امروز.
+	 * پیشوند آپشن وضعیت امروزِ هر قانون.
 	 */
-	const TODAY_OPTION = 'dsb_today';
+	const TODAY_PREFIX = 'dsb_today_';
 
 	/**
 	 * آپشن قفل اجرا.
@@ -50,7 +51,7 @@ class DSB_Scheduler {
 	/**
 	 * عمر قفل بر حسب ثانیه.
 	 */
-	const LOCK_TTL = 300;
+	const LOCK_TTL = 600;
 
 	/**
 	 * آپشن زمان آخرین بررسی (از هر مسیری).
@@ -64,9 +65,6 @@ class DSB_Scheduler {
 
 	/**
 	 * آپشن زمان ثبت‌شدن رویداد تیک.
-	 *
-	 * تا وقتی این زمان تازه باشد، «نبودِ تیکِ کران» به‌معنای خرابی نیست؛
-	 * فقط یعنی هنوز نوبت اولین اجرا نرسیده.
 	 */
 	const SCHEDULED_AT_OPTION = 'dsb_scheduled_at';
 
@@ -88,6 +86,13 @@ class DSB_Scheduler {
 	private $settings;
 
 	/**
+	 * قوانین.
+	 *
+	 * @var DSB_Rules
+	 */
+	private $rules;
+
+	/**
 	 * انتشاردهنده.
 	 *
 	 * @var DSB_Publisher
@@ -105,11 +110,13 @@ class DSB_Scheduler {
 	 * سازنده.
 	 *
 	 * @param DSB_Settings  $settings  تنظیمات.
+	 * @param DSB_Rules     $rules     قوانین.
 	 * @param DSB_Publisher $publisher انتشاردهنده.
 	 * @param DSB_Health    $health    پایش سلامت.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Publisher $publisher, DSB_Health $health ) {
+	public function __construct( DSB_Settings $settings, DSB_Rules $rules, DSB_Publisher $publisher, DSB_Health $health ) {
 		$this->settings  = $settings;
+		$this->rules     = $rules;
 		$this->publisher = $publisher;
 		$this->health    = $health;
 	}
@@ -136,7 +143,7 @@ class DSB_Scheduler {
 	public function add_interval( $schedules ) {
 		$schedules[ self::INTERVAL ] = array(
 			'interval' => self::INTERVAL_SECONDS,
-			'display'  => __( 'هر ۵ دقیقه (ارسال به بله)', 'daily-bale-post' ),
+			'display'  => __( 'هر ۵ دقیقه (انتشار خودکار)', 'daily-bale-post' ),
 		);
 
 		return $schedules;
@@ -144,9 +151,6 @@ class DSB_Scheduler {
 
 	/**
 	 * اطمینان از وجود رویداد تیک در صف کران.
-	 *
-	 * اگر رویداد به هر دلیلی پاک شده باشد (آپدیت، پاک‌سازی کش، بازگردانی بکاپ)
-	 * همین‌جا دوباره ثبت می‌شود.
 	 *
 	 * @return void
 	 */
@@ -205,7 +209,7 @@ class DSB_Scheduler {
 		update_option( self::LAST_TICK_OPTION, $now, false );
 		update_option( self::LAST_CRON_OPTION, $now, false );
 
-		$this->maybe_publish();
+		$this->run_due_rules();
 		$this->health->maybe_alert();
 	}
 
@@ -213,7 +217,7 @@ class DSB_Scheduler {
 	 * بررسیِ مبتنی بر بازدید سایت.
 	 *
 	 * پشتیبانِ WP-Cron است: روی سایت‌هایی که لوپ‌بکِ wp-cron.php کار نمی‌کند،
-	 * ارسال روزانه با همین مسیر انجام می‌شود.
+	 * انتشار با همین مسیر انجام می‌شود.
 	 *
 	 * @return void
 	 */
@@ -230,9 +234,7 @@ class DSB_Scheduler {
 
 		update_option( self::LAST_TICK_OPTION, time(), false );
 
-		$state = $this->due_state();
-
-		if ( 'due' !== $state['code'] ) {
+		if ( ! $this->has_due_rule() ) {
 			$this->health->maybe_alert();
 			return;
 		}
@@ -251,48 +253,83 @@ class DSB_Scheduler {
 			@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		}
 
-		$this->maybe_publish();
+		$this->run_due_rules();
 		$this->health->maybe_alert();
 	}
 
 	/**
-	 * تشخیص اینکه همین حالا باید پست برود یا نه.
+	 * آیا حداقل یک قانون آماده‌ی اجراست.
 	 *
+	 * @return bool
+	 */
+	public function has_due_rule() {
+		foreach ( $this->rules->active() as $rule ) {
+			if ( 'due' === $this->due_state( $rule )['code'] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * اجرای همه‌ی قوانینی که نوبتشان رسیده.
+	 *
+	 * @return array نتایج، کلید = شناسه‌ی قانون.
+	 */
+	public function run_due_rules() {
+		$out = array();
+
+		foreach ( $this->rules->active() as $rule ) {
+			$out[ $rule['id'] ] = $this->maybe_publish( $rule );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * تشخیص اینکه یک قانون همین حالا باید اجرا شود یا نه.
+	 *
+	 * @param array $rule قانون.
 	 * @return array{code:string,message:string}
 	 */
-	public function due_state() {
+	public function due_state( array $rule ) {
 		if ( ! $this->settings->get( 'enabled' ) ) {
-			return $this->state( 'disabled', __( 'ارسال خودکار غیرفعال است.', 'daily-bale-post' ) );
+			return $this->state( 'disabled', __( 'انتشار خودکار در تنظیمات کلی خاموش است.', 'daily-bale-post' ) );
+		}
+
+		if ( empty( $rule['enabled'] ) ) {
+			return $this->state( 'disabled', __( 'این قانون غیرفعال است.', 'daily-bale-post' ) );
+		}
+
+		if ( empty( $rule['destinations'] ) ) {
+			return $this->state( 'no-destination', __( 'مقصدی برای این قانون انتخاب نشده است.', 'daily-bale-post' ) );
 		}
 
 		$now   = DSB_Settings::now();
 		$today = $now->format( 'Y-m-d' );
-		$days  = array_map( 'intval', (array) $this->settings->get( 'days' ) );
+		$days  = array_map( 'intval', (array) $rule['days'] );
 
 		if ( $days && ! in_array( (int) $now->format( 'w' ), $days, true ) ) {
-			return $this->state( 'day-off', __( 'امروز جزو روزهای ارسال نیست.', 'daily-bale-post' ) );
+			return $this->state( 'day-off', __( 'امروز جزو روزهای این قانون نیست.', 'daily-bale-post' ) );
 		}
 
-		$record = $this->today_record( $today );
+		$record = $this->today_record( $rule['id'], $today );
 
 		if ( ! empty( $record['done'] ) ) {
-			return $this->state( 'done', __( 'پست امروز ارسال شده است.', 'daily-bale-post' ) );
+			return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'daily-bale-post' ) );
 		}
 
-		$target = $now->setTime(
-			(int) $this->settings->get( 'hour' ),
-			(int) $this->settings->get( 'minute' ),
-			0
-		);
+		$target = $now->setTime( (int) $rule['hour'], (int) $rule['minute'], 0 );
 
 		if ( $now < $target ) {
-			return $this->state( 'early', __( 'هنوز به ساعت ارسال نرسیده‌ایم.', 'daily-bale-post' ) );
+			return $this->state( 'early', __( 'هنوز به ساعت این قانون نرسیده‌ایم.', 'daily-bale-post' ) );
 		}
 
-		$max = max( 1, (int) $this->settings->get( 'max_attempts' ) );
+		$max = max( 1, (int) $rule['max_attempts'] );
 
 		if ( (int) $record['attempts'] >= $max ) {
-			return $this->state( 'exhausted', __( 'تلاش‌های امروز به پایان رسیده است.', 'daily-bale-post' ) );
+			return $this->state( 'exhausted', __( 'تلاش‌های امروز این قانون به پایان رسیده است.', 'daily-bale-post' ) );
 		}
 
 		if ( $record['last_attempt'] && ( time() - (int) $record['last_attempt'] ) < self::RETRY_BACKOFF ) {
@@ -303,12 +340,13 @@ class DSB_Scheduler {
 	}
 
 	/**
-	 * ارسال پست روزانه در صورت فرارسیدن زمانش.
+	 * اجرای یک قانون در صورت فرارسیدن زمانش.
 	 *
+	 * @param array $rule قانون.
 	 * @return array نتیجه یا وضعیت رد شدن.
 	 */
-	public function maybe_publish() {
-		$state = $this->due_state();
+	public function maybe_publish( array $rule ) {
+		$state = $this->due_state( $rule );
 
 		if ( 'due' !== $state['code'] ) {
 			return $state;
@@ -320,22 +358,22 @@ class DSB_Scheduler {
 
 		try {
 			$today  = DSB_Settings::now()->format( 'Y-m-d' );
-			$record = $this->today_record( $today );
+			$record = $this->today_record( $rule['id'], $today );
 
 			// بررسی دوباره زیر قفل، تا دو درخواست هم‌زمان دوبار پست نگذارند.
 			if ( ! empty( $record['done'] ) ) {
-				return $this->state( 'done', __( 'پست امروز ارسال شده است.', 'daily-bale-post' ) );
+				return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'daily-bale-post' ) );
 			}
 
-			$record['attempts']    = (int) $record['attempts'] + 1;
+			$record['attempts']     = (int) $record['attempts'] + 1;
 			$record['last_attempt'] = time();
-			$this->save_today( $record );
+			$this->save_today( $rule['id'], $record );
 
-			$result = $this->publisher->publish( 'auto' );
+			$result = $this->publisher->publish( $rule, 'auto' );
 
 			if ( ! empty( $result['ok'] ) ) {
 				$record['done'] = true;
-				$this->save_today( $record );
+				$this->save_today( $rule['id'], $record );
 			}
 
 			return $result;
@@ -345,54 +383,71 @@ class DSB_Scheduler {
 	}
 
 	/**
-	 * ارسال دستی و فوری (دکمه‌ی ارسال تستی).
+	 * اجرای دستی و فوری یک قانون (دکمه‌ی ارسال تستی).
 	 *
 	 * سهمیه‌ی روزانه را مصرف نمی‌کند تا پست خودکار همان روز هم ارسال شود.
 	 *
+	 * @param array $rule قانون.
 	 * @return array
 	 */
-	public function run_now() {
-		return $this->publisher->publish( 'manual' );
+	public function run_now( array $rule ) {
+		return $this->publisher->publish( $rule, 'manual' );
 	}
 
 	/**
-	 * خواندن وضعیت امروز، با ریست خودکار در تغییر روز.
+	 * خواندن وضعیت امروزِ یک قانون، با ریست خودکار در تغییر روز.
 	 *
-	 * @param string $today تاریخ امروز به وقت تهران.
+	 * @param string $rule_id شناسه‌ی قانون.
+	 * @param string $today   تاریخ امروز به وقت تهران.
 	 * @return array
 	 */
-	private function today_record( $today ) {
-		$record = get_option( self::TODAY_OPTION, array() );
+	private function today_record( $rule_id, $today ) {
+		$record = get_option( self::TODAY_PREFIX . $rule_id, array() );
 		$record = is_array( $record ) ? $record : array();
 
+		$blank = array(
+			'date'         => $today,
+			'attempts'     => 0,
+			'done'         => false,
+			'last_attempt' => 0,
+		);
+
 		if ( ( $record['date'] ?? '' ) !== $today ) {
-			$record = array(
-				'date'         => $today,
-				'attempts'     => 0,
-				'done'         => false,
-				'last_attempt' => 0,
-			);
+			return $blank;
 		}
 
-		return wp_parse_args(
-			$record,
-			array(
-				'date'         => $today,
-				'attempts'     => 0,
-				'done'         => false,
-				'last_attempt' => 0,
-			)
-		);
+		return wp_parse_args( $record, $blank );
 	}
 
 	/**
-	 * ذخیره‌ی وضعیت امروز.
+	 * ذخیره‌ی وضعیت امروزِ یک قانون.
 	 *
-	 * @param array $record وضعیت.
+	 * @param string $rule_id شناسه‌ی قانون.
+	 * @param array  $record  وضعیت.
 	 * @return void
 	 */
-	private function save_today( array $record ) {
-		update_option( self::TODAY_OPTION, $record, false );
+	private function save_today( $rule_id, array $record ) {
+		update_option( self::TODAY_PREFIX . $rule_id, $record, false );
+	}
+
+	/**
+	 * وضعیت امروزِ یک قانون، برای نمایش در پنل.
+	 *
+	 * @param string $rule_id شناسه‌ی قانون.
+	 * @return array
+	 */
+	public function today( $rule_id ) {
+		return $this->today_record( $rule_id, DSB_Settings::now()->format( 'Y-m-d' ) );
+	}
+
+	/**
+	 * پاک‌کردن وضعیت امروزِ یک قانون.
+	 *
+	 * @param string $rule_id شناسه‌ی قانون.
+	 * @return void
+	 */
+	public function forget_today( $rule_id ) {
+		delete_option( self::TODAY_PREFIX . $rule_id );
 	}
 
 	/**
@@ -438,7 +493,7 @@ class DSB_Scheduler {
 	}
 
 	/**
-	 * زمان آخرین بررسی، از هر مسیری (کران یا بازدید سایت).
+	 * زمان آخرین بررسی، از هر مسیری.
 	 *
 	 * @return int
 	 */
@@ -465,16 +520,17 @@ class DSB_Scheduler {
 	}
 
 	/**
-	 * زمان ارسال بعدی بر اساس تنظیمات روز و ساعت.
+	 * زمان ارسال بعدی یک قانون.
 	 *
+	 * @param array $rule قانون.
 	 * @return DateTimeImmutable|null
 	 */
-	public function next_run() {
-		if ( ! $this->settings->get( 'enabled' ) ) {
+	public function next_run( array $rule ) {
+		if ( ! $this->settings->get( 'enabled' ) || empty( $rule['enabled'] ) ) {
 			return null;
 		}
 
-		$days = array_map( 'intval', (array) $this->settings->get( 'days' ) );
+		$days = array_map( 'intval', (array) $rule['days'] );
 
 		// فهرست خالی یعنی «همه‌ی روزها»، مطابق رفتار due_state().
 		if ( empty( $days ) ) {
@@ -482,12 +538,12 @@ class DSB_Scheduler {
 		}
 
 		$now    = DSB_Settings::now();
-		$record = $this->today_record( $now->format( 'Y-m-d' ) );
+		$record = $this->today_record( $rule['id'], $now->format( 'Y-m-d' ) );
 
 		for ( $offset = 0; $offset <= 7; $offset++ ) {
 			$day = $now->modify( '+' . $offset . ' days' )->setTime(
-				(int) $this->settings->get( 'hour' ),
-				(int) $this->settings->get( 'minute' ),
+				(int) $rule['hour'],
+				(int) $rule['minute'],
 				0
 			);
 
@@ -503,15 +559,6 @@ class DSB_Scheduler {
 		}
 
 		return null;
-	}
-
-	/**
-	 * وضعیت امروز برای نمایش در پنل.
-	 *
-	 * @return array
-	 */
-	public function today() {
-		return $this->today_record( DSB_Settings::now()->format( 'Y-m-d' ) );
 	}
 
 	/**

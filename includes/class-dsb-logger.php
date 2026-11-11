@@ -20,7 +20,7 @@ class DSB_Logger {
 	/**
 	 * بیشینه‌ی ردیف‌های نگه‌داشته‌شده.
 	 */
-	const LIMIT = 60;
+	const LIMIT = 120;
 
 	/**
 	 * وضعیت‌های ممکن.
@@ -32,21 +32,25 @@ class DSB_Logger {
 	/**
 	 * افزودن یک ردیف.
 	 *
-	 * @param string $state  یکی از ثابت‌های STATE_*.
-	 * @param string $name   نام محصول یا توضیح کوتاه.
-	 * @param string $msg    پیام وضعیت.
-	 * @param string $source منبع اجرا: auto | manual | repair.
+	 * @param string $state       یکی از ثابت‌های STATE_*.
+	 * @param string $title       عنوان مطلب یا توضیح کوتاه.
+	 * @param string $msg         پیام وضعیت.
+	 * @param string $source      منبع اجرا: auto | manual.
+	 * @param string $rule        نام قانون.
+	 * @param string $destination نام مقصد.
 	 * @return void
 	 */
-	public function add( $state, $name, $msg, $source = 'auto' ) {
+	public function add( $state, $title, $msg, $source = 'auto', $rule = '', $destination = '' ) {
 		$log = $this->all();
 
 		$log[] = array(
-			'time'   => time(),
-			'state'  => $state,
-			'name'   => (string) $name,
-			'msg'    => (string) $msg,
-			'source' => (string) $source,
+			'time'        => time(),
+			'state'       => $state,
+			'name'        => (string) $title,
+			'msg'         => (string) $msg,
+			'source'      => (string) $source,
+			'rule'        => (string) $rule,
+			'destination' => (string) $destination,
 		);
 
 		update_option( self::OPTION, array_slice( $log, -self::LIMIT ), false );
@@ -59,29 +63,41 @@ class DSB_Logger {
 	 */
 	public function all() {
 		$log = get_option( self::OPTION, array() );
+
 		return is_array( $log ) ? $log : array();
 	}
 
 	/**
 	 * ردیف‌ها از جدید به قدیم.
 	 *
+	 * @param int $limit حداکثر تعداد.
 	 * @return array
 	 */
-	public function recent() {
-		return array_reverse( $this->all() );
+	public function recent( $limit = 0 ) {
+		$rows = array_reverse( $this->all() );
+
+		return $limit > 0 ? array_slice( $rows, 0, $limit ) : $rows;
 	}
 
 	/**
-	 * آخرین ارسال موفق.
+	 * آخرین ارسال موفق، به‌صورت کلی یا برای یک قانون.
 	 *
+	 * @param string $rule نام قانون؛ خالی یعنی همه.
 	 * @return array|null
 	 */
-	public function last_success() {
+	public function last_success( $rule = '' ) {
 		foreach ( $this->recent() as $row ) {
-			if ( self::STATE_OK === ( $row['state'] ?? '' ) ) {
-				return $row;
+			if ( self::STATE_OK !== ( $row['state'] ?? '' ) ) {
+				continue;
 			}
+
+			if ( '' !== $rule && ( $row['rule'] ?? '' ) !== $rule ) {
+				continue;
+			}
+
+			return $row;
 		}
+
 		return null;
 	}
 
@@ -92,6 +108,7 @@ class DSB_Logger {
 	 */
 	public function last() {
 		$log = $this->all();
+
 		return $log ? end( $log ) : null;
 	}
 

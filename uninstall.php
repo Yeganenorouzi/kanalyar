@@ -19,6 +19,8 @@ $dsb_options = array(
 	'dsb_last_cron_tick',
 	'dsb_scheduled_at',
 	'dsb_last_alert',
+	'dsb_destinations',
+	'dsb_rules',
 	// آپشن‌های نسخه‌های پیش از ۴.
 	'dsb_token',
 	'dsb_channel',
@@ -36,6 +38,13 @@ $dsb_options = array(
 foreach ( $dsb_options as $dsb_option ) {
 	delete_option( $dsb_option );
 }
+
+// آپشن‌های پویا: وضعیت امروز و تاریخچه‌ی هر قانون.
+global $wpdb;
+
+$wpdb->query(
+	"DELETE FROM {$wpdb->options} WHERE option_name LIKE 'dsb\_today\_%' OR option_name LIKE 'dsb\_recent\_%'"
+);
 
 delete_transient( 'dsb_fallback_guard' );
 

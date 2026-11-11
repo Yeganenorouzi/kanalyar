@@ -1,6 +1,6 @@
 <?php
 /**
- * هماهنگ‌کننده‌ی انتخاب محصول، ساخت پیام و ارسال.
+ * اجرای یک قانون انتشار.
  *
  * @package DailyBalePost
  */
@@ -8,12 +8,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * انتشار یک محصول در کانال بله.
+ * انتخاب محتوا، ساخت پیام و ارسال به همه‌ی مقصدهای یک قانون.
  */
 class DSB_Publisher {
 
 	/**
-	 * تنظیمات.
+	 * تنظیمات سراسری.
 	 *
 	 * @var DSB_Settings
 	 */
@@ -27,9 +27,16 @@ class DSB_Publisher {
 	private $logger;
 
 	/**
-	 * انتخاب‌گر محصول.
+	 * مقصدها.
 	 *
-	 * @var DSB_Product_Selector
+	 * @var DSB_Destinations
+	 */
+	private $destinations;
+
+	/**
+	 * انتخاب‌گر محتوا.
+	 *
+	 * @var DSB_Content_Selector
 	 */
 	private $selector;
 
@@ -43,73 +50,130 @@ class DSB_Publisher {
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings $settings تنظیمات.
-	 * @param DSB_Logger   $logger   تاریخچه.
+	 * @param DSB_Settings     $settings     تنظیمات.
+	 * @param DSB_Logger       $logger       تاریخچه.
+	 * @param DSB_Destinations $destinations مقصدها.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Logger $logger ) {
-		$this->settings = $settings;
-		$this->logger   = $logger;
-		$this->selector = new DSB_Product_Selector( $settings );
-		$this->message  = new DSB_Message( $settings );
+	public function __construct( DSB_Settings $settings, DSB_Logger $logger, DSB_Destinations $destinations ) {
+		$this->settings     = $settings;
+		$this->logger       = $logger;
+		$this->destinations = $destinations;
+		$this->selector     = new DSB_Content_Selector();
+		$this->message      = new DSB_Message( $settings );
 	}
 
 	/**
-	 * ساخت کلاینت API با تنظیمات فعلی.
+	 * اجرای یک قانون.
 	 *
-	 * @return DSB_Bale_API
+	 * اگر حداقل یک مقصد موفق باشد، نتیجه موفق است و مطلب در
+	 * تاریخچه‌ی قانون ثبت می‌شود تا دوباره انتخاب نشود.
+	 *
+	 * @param array  $rule   قانون.
+	 * @param string $source منبع اجرا: auto | manual.
+	 * @return array{ok:bool,message:string,title:string,results:array}
 	 */
-	public function api() {
-		return new DSB_Bale_API(
-			$this->settings->get( 'token' ),
-			$this->settings->get( 'channel' ),
-			(int) $this->settings->get( 'retries' )
+	public function publish( array $rule, $source = 'auto' ) {
+		$targets = $this->destinations->pick( (array) $rule['destinations'] );
+
+		if ( ! $targets ) {
+			return $this->fail(
+				$rule,
+				'—',
+				__( 'هیچ مقصد فعالی برای این قانون تنظیم نشده است.', 'daily-bale-post' ),
+				$source
+			);
+		}
+
+		$post = $this->selector->pick( $rule );
+
+		if ( is_wp_error( $post ) ) {
+			return $this->fail( $rule, '—', $post->get_error_message(), $source );
+		}
+
+		$parts   = $this->message->build( $post, $rule );
+		$retries = (int) $this->settings->get( 'retries' );
+
+		$results = array();
+		$any_ok  = false;
+
+		foreach ( $targets as $destination ) {
+			$messenger = $this->messenger( $destination, $retries );
+			$result    = $this->send( $messenger, $parts, $rule );
+			$ok        = ! empty( $result['ok'] );
+			$any_ok    = $any_ok || $ok;
+
+			$results[] = array(
+				'destination' => $destination['label'],
+				'platform'    => $destination['platform'],
+				'ok'          => $ok,
+				'message'     => $ok ? __( 'ارسال شد', 'daily-bale-post' ) : DSB_Messenger::error_message( $result ),
+				'raw'         => $result,
+			);
+
+			$this->logger->add(
+				$ok ? DSB_Logger::STATE_OK : DSB_Logger::STATE_FAIL,
+				$parts['title'],
+				$ok ? __( 'ارسال شد', 'daily-bale-post' ) : DSB_Messenger::error_message( $result ),
+				$source,
+				$rule['label'],
+				$destination['label']
+			);
+		}
+
+		if ( $any_ok ) {
+			$this->selector->remember( $rule, $post->ID );
+		}
+
+		return array(
+			'ok'      => $any_ok,
+			'message' => $this->summary( $results ),
+			'title'   => $parts['title'],
+			'results' => $results,
 		);
 	}
 
 	/**
-	 * انتشار یک محصول.
+	 * ساخت کلاینت یک مقصد. برای تست قابل بازنویسی است.
 	 *
-	 * @param string $source منبع اجرا: auto | manual.
-	 * @return array{ok:bool,message:string,product:string,raw:array}
+	 * @param array $destination مقصد.
+	 * @param int   $retries     تلاش مجدد.
+	 * @return DSB_Messenger
 	 */
-	public function publish( $source = 'auto' ) {
-		$api = $this->api();
+	protected function messenger( array $destination, $retries ) {
+		return DSB_Destinations::messenger( $destination, $retries );
+	}
 
-		if ( ! $api->is_configured() ) {
-			return $this->fail( '—', __( 'توکن یا آیدی کانال تنظیم نشده است.', 'daily-bale-post' ), $source );
+	/**
+	 * خلاصه‌ی نتیجه‌ی همه‌ی مقصدها.
+	 *
+	 * @param array $results نتایج.
+	 * @return string
+	 */
+	private function summary( array $results ) {
+		$ok = 0;
+
+		foreach ( $results as $row ) {
+			if ( $row['ok'] ) {
+				$ok++;
+			}
 		}
 
-		$product = $this->selector->pick();
+		$total = count( $results );
 
-		if ( is_wp_error( $product ) ) {
-			return $this->fail( '—', $product->get_error_message(), $source );
+		if ( $ok === $total ) {
+			/* translators: %d: تعداد مقصد. */
+			return sprintf( _n( 'به %d مقصد ارسال شد', 'به %d مقصد ارسال شد', $total, 'daily-bale-post' ), $total );
 		}
 
-		$parts  = $this->message->build( $product );
-		$result = $this->send( $api, $parts );
-
-		if ( empty( $result['ok'] ) ) {
-			return $this->fail(
-				$product->get_name(),
-				DSB_Bale_API::error_message( $result ),
-				$source,
-				$result
-			);
+		if ( 0 === $ok ) {
+			return __( 'ارسال به هیچ مقصدی موفق نبود.', 'daily-bale-post' );
 		}
 
-		$this->selector->remember( $product->get_id() );
-
-		$note = 'manual' === $source
-			? __( 'ارسال شد (دستی)', 'daily-bale-post' )
-			: __( 'ارسال شد', 'daily-bale-post' );
-
-		$this->logger->add( DSB_Logger::STATE_OK, $product->get_name(), $note, $source );
-
-		return array(
-			'ok'      => true,
-			'message' => $note,
-			'product' => $product->get_name(),
-			'raw'     => $result,
+		return sprintf(
+			/* translators: ۱: تعداد موفق، ۲: تعداد کل. */
+			__( 'به %1$d مقصد از %2$d مقصد ارسال شد.', 'daily-bale-post' ),
+			$ok,
+			$total
 		);
 	}
 
@@ -119,12 +183,13 @@ class DSB_Publisher {
 	 * ترتیب در حالت خودکار: لینک تصویر ← آپلود مستقیم فایل ← فقط متن.
 	 * این زنجیره خطای «failed to get HTTP URL content» را خنثی می‌کند.
 	 *
-	 * @param DSB_Bale_API $api   کلاینت.
-	 * @param array        $parts اجزای پیام.
+	 * @param DSB_Messenger $api   کلاینت.
+	 * @param array         $parts اجزای پیام.
+	 * @param array         $rule  قانون.
 	 * @return array
 	 */
-	private function send( DSB_Bale_API $api, array $parts ) {
-		$mode   = (string) $this->settings->get( 'photo_mode' );
+	private function send( DSB_Messenger $api, array $parts, array $rule ) {
+		$mode   = (string) $rule['photo_mode'];
 		$markup = $parts['reply_markup'];
 		$text   = $parts['text'];
 
@@ -145,7 +210,7 @@ class DSB_Publisher {
 			return $result;
 		}
 
-		// حالت خودکار: بله نتوانست تصویر را از سایت بگیرد، خودمان آپلودش می‌کنیم.
+		// حالت خودکار: سرور نتوانست تصویر را از سایت بگیرد، خودمان آپلودش می‌کنیم.
 		if ( '' !== $parts['photo_path'] ) {
 			$uploaded = $api->send_photo_upload( $parts['photo_path'], $text, $markup );
 
@@ -161,27 +226,27 @@ class DSB_Publisher {
 	/**
 	 * ثبت شکست در تاریخچه و ساخت پاسخ.
 	 *
-	 * @param string $name    نام محصول.
+	 * @param array  $rule    قانون.
+	 * @param string $title   عنوان مطلب.
 	 * @param string $message پیام خطا.
 	 * @param string $source  منبع اجرا.
-	 * @param array  $raw     پاسخ خام.
 	 * @return array
 	 */
-	private function fail( $name, $message, $source, $raw = array() ) {
-		$this->logger->add( DSB_Logger::STATE_FAIL, $name, $message, $source );
+	private function fail( array $rule, $title, $message, $source ) {
+		$this->logger->add( DSB_Logger::STATE_FAIL, $title, $message, $source, $rule['label'], '—' );
 
 		return array(
 			'ok'      => false,
 			'message' => $message,
-			'product' => $name,
-			'raw'     => $raw,
+			'title'   => $title,
+			'results' => array(),
 		);
 	}
 
 	/**
-	 * دسترسی به انتخاب‌گر محصول.
+	 * دسترسی به انتخاب‌گر محتوا.
 	 *
-	 * @return DSB_Product_Selector
+	 * @return DSB_Content_Selector
 	 */
 	public function selector() {
 		return $this->selector;

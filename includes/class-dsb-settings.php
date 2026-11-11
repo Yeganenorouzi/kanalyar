@@ -1,6 +1,6 @@
 <?php
 /**
- * مدیریت تنظیمات افزونه.
+ * تنظیمات سراسری افزونه.
  *
  * @package DailyBalePost
  */
@@ -8,12 +8,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * خواندن، اعتبارسنجی و ذخیره‌ی تنظیمات.
+ * تنظیماتی که به یک قانون خاص مربوط نیستند.
+ *
+ * محتوا، مقصد و زمان‌بندی در DSB_Rules و DSB_Destinations نگه‌داری می‌شوند.
  */
 class DSB_Settings {
 
 	/**
-	 * نام آپشنی که همه‌ی تنظیمات در آن ذخیره می‌شود.
+	 * نام آپشنی که تنظیمات سراسری در آن ذخیره می‌شود.
 	 */
 	const OPTION = 'dsb_settings';
 
@@ -21,25 +23,6 @@ class DSB_Settings {
 	 * منطقه‌ی زمانی مرجع زمان‌بندی.
 	 */
 	const TIMEZONE = 'Asia/Tehran';
-
-	/**
-	 * نگاشت آپشن‌های تک‌تکِ نسخه‌ی ۳ به کلیدهای جدید.
-	 *
-	 * @var array<string,string>
-	 */
-	private static $legacy_map = array(
-		'dsb_token'      => 'token',
-		'dsb_channel'    => 'channel',
-		'dsb_phone'      => 'phone',
-		'dsb_hour'       => 'hour',
-		'dsb_minute'     => 'minute',
-		'dsb_enabled'    => 'enabled',
-		'dsb_categories' => 'categories',
-		'dsb_avoid'      => 'avoid',
-		'dsb_instock'    => 'instock',
-		'dsb_days'       => 'days',
-		'dsb_show_price' => 'show_price',
-	);
 
 	/**
 	 * کش درون‌درخواستی تنظیمات.
@@ -55,22 +38,11 @@ class DSB_Settings {
 	 */
 	public static function defaults() {
 		return array(
-			'enabled'      => 1,
-			'token'        => '',
-			'channel'      => '',
-			'phone'        => '',
-			'hour'         => 10,
-			'minute'       => 45,
-			'categories'   => array(),
-			'avoid'        => 10,
-			'instock'      => 1,
-			'show_price'   => 1,
-			'days'         => array( 0, 1, 2, 3, 4, 5, 6 ),
-			'photo_mode'   => 'auto',
-			'retries'      => 2,
-			'max_attempts' => 3,
-			'alerts'       => 1,
-			'alert_email'  => '',
+			'enabled'     => 1,
+			'phone'       => '',
+			'retries'     => 2,
+			'alerts'      => 1,
+			'alert_email' => '',
 		);
 	}
 
@@ -99,6 +71,7 @@ class DSB_Settings {
 			$stored      = is_array( $stored ) ? $stored : array();
 			$this->cache = wp_parse_args( $stored, self::defaults() );
 		}
+
 		return $this->cache;
 	}
 
@@ -112,11 +85,7 @@ class DSB_Settings {
 	public function get( $key, $default = null ) {
 		$all = $this->all();
 
-		if ( array_key_exists( $key, $all ) ) {
-			return $all[ $key ];
-		}
-
-		return $default;
+		return array_key_exists( $key, $all ) ? $all[ $key ] : $default;
 	}
 
 	/**
@@ -156,50 +125,6 @@ class DSB_Settings {
 	}
 
 	/**
-	 * پاک‌سازی ورودی فرم تنظیمات.
-	 *
-	 * @param array $raw داده‌ی خام POST.
-	 * @return array
-	 */
-	public function sanitize( array $raw ) {
-		$defaults = self::defaults();
-		$clean    = array();
-
-		$clean['enabled']    = empty( $raw['enabled'] ) ? 0 : 1;
-		$clean['instock']    = empty( $raw['instock'] ) ? 0 : 1;
-		$clean['show_price'] = empty( $raw['show_price'] ) ? 0 : 1;
-		$clean['alerts']     = empty( $raw['alerts'] ) ? 0 : 1;
-
-		$clean['token']   = sanitize_text_field( wp_unslash( $raw['token'] ?? '' ) );
-		$clean['channel'] = sanitize_text_field( wp_unslash( $raw['channel'] ?? '' ) );
-		$clean['phone']   = sanitize_text_field( wp_unslash( $raw['phone'] ?? '' ) );
-
-		$email                = sanitize_email( wp_unslash( $raw['alert_email'] ?? '' ) );
-		$clean['alert_email'] = is_email( $email ) ? $email : '';
-
-		$clean['hour']   = max( 0, min( 23, (int) ( $raw['hour'] ?? $defaults['hour'] ) ) );
-		$clean['minute'] = max( 0, min( 59, (int) ( $raw['minute'] ?? $defaults['minute'] ) ) );
-		$clean['avoid']  = max( 0, min( 500, (int) ( $raw['avoid'] ?? $defaults['avoid'] ) ) );
-
-		$clean['retries']      = max( 0, min( 5, (int) ( $raw['retries'] ?? $defaults['retries'] ) ) );
-		$clean['max_attempts'] = max( 1, min( 10, (int) ( $raw['max_attempts'] ?? $defaults['max_attempts'] ) ) );
-
-		$mode                = sanitize_key( $raw['photo_mode'] ?? $defaults['photo_mode'] );
-		$clean['photo_mode'] = array_key_exists( $mode, self::photo_modes() ) ? $mode : $defaults['photo_mode'];
-
-		$cats                = isset( $raw['categories'] ) ? (array) $raw['categories'] : array();
-		$clean['categories'] = array_values( array_filter( array_map( 'absint', $cats ) ) );
-
-		$days          = isset( $raw['days'] ) ? (array) $raw['days'] : array();
-		$days          = array_map( 'intval', $days );
-		$days          = array_values( array_unique( array_filter( $days, array( __CLASS__, 'is_weekday' ) ) ) );
-		sort( $days );
-		$clean['days'] = $days;
-
-		return $clean;
-	}
-
-	/**
 	 * آیا عدد یک روز هفته‌ی معتبر است (۰ تا ۶).
 	 *
 	 * @param int $day شماره‌ی روز.
@@ -210,54 +135,183 @@ class DSB_Settings {
 	}
 
 	/**
-	 * نصب: ساخت آپشن و انتقال تنظیمات نسخه‌های قبلی.
+	 * پاک‌سازی ورودی فرم تنظیمات سراسری.
 	 *
+	 * @param array $raw داده‌ی خام POST.
+	 * @return array
+	 */
+	public function sanitize( array $raw ) {
+		$defaults = self::defaults();
+
+		$email = sanitize_email( $raw['alert_email'] ?? '' );
+
+		return array(
+			'enabled'     => empty( $raw['enabled'] ) ? 0 : 1,
+			'alerts'      => empty( $raw['alerts'] ) ? 0 : 1,
+			'phone'       => sanitize_text_field( $raw['phone'] ?? '' ),
+			'alert_email' => is_email( $email ) ? $email : '',
+			'retries'     => max( 0, min( 5, (int) ( $raw['retries'] ?? $defaults['retries'] ) ) ),
+		);
+	}
+
+	/**
+	 * نصب و مهاجرت.
+	 *
+	 * @param DSB_Destinations $destinations مقصدها.
+	 * @param DSB_Rules        $rules        قوانین.
 	 * @return void
 	 */
-	public function install() {
+	public function install( DSB_Destinations $destinations, DSB_Rules $rules ) {
 		if ( ! get_option( DSB_Health::INSTALLED_OPTION, 0 ) ) {
 			update_option( DSB_Health::INSTALLED_OPTION, time(), false );
 		}
 
-		$stored = get_option( self::OPTION, null );
+		$legacy = $this->collect_legacy();
 
-		if ( is_array( $stored ) && ! empty( $stored ) ) {
-			// آپشن جدید وجود دارد؛ فقط کلیدهای تازه را اضافه کن.
-			$this->save( wp_parse_args( $stored, self::defaults() ) );
-			return;
+		$this->save( wp_parse_args( $this->global_part( $legacy ), self::defaults() ) );
+
+		// اگر هنوز مقصد و قانونی نساخته‌ایم، از تنظیمات قدیمی بسازشان.
+		if ( ! $destinations->all() && ! $rules->all() ) {
+			$this->seed_from_legacy( $legacy, $destinations, $rules );
 		}
-
-		$this->save( $this->collect_legacy() );
 	}
 
 	/**
-	 * خواندن تنظیمات نسخه‌ی ۳ از آپشن‌های جداگانه.
+	 * جداکردن بخش سراسریِ تنظیمات قدیمی.
+	 *
+	 * @param array $legacy تنظیمات قدیمی.
+	 * @return array
+	 */
+	private function global_part( array $legacy ) {
+		return array(
+			'enabled'     => isset( $legacy['enabled'] ) ? (int) $legacy['enabled'] : 1,
+			'phone'       => $legacy['phone'] ?? '',
+			'retries'     => isset( $legacy['retries'] ) ? (int) $legacy['retries'] : 2,
+			'alerts'      => isset( $legacy['alerts'] ) ? (int) $legacy['alerts'] : 1,
+			'alert_email' => $legacy['alert_email'] ?? '',
+		);
+	}
+
+	/**
+	 * ساخت اولین مقصد و قانون از تنظیمات نسخه‌های قبل.
+	 *
+	 * @param array            $legacy       تنظیمات قدیمی.
+	 * @param DSB_Destinations $destinations مقصدها.
+	 * @param DSB_Rules        $rules        قوانین.
+	 * @return void
+	 */
+	private function seed_from_legacy( array $legacy, DSB_Destinations $destinations, DSB_Rules $rules ) {
+		$token   = (string) ( $legacy['token'] ?? '' );
+		$channel = (string) ( $legacy['channel'] ?? '' );
+
+		// نصب تازه: یک قانون و مقصد خالی بساز تا کاربر فقط پرشان کند.
+		$destination_id = DSB_Destinations::new_id();
+
+		$destinations->save(
+			array(
+				array(
+					'id'       => $destination_id,
+					'label'    => '' !== $channel ? $channel : __( 'کانال بله', 'daily-bale-post' ),
+					'platform' => 'bale',
+					'token'    => $token,
+					'chat_id'  => $channel,
+					'enabled'  => 1,
+				),
+			)
+		);
+
+		$has_products = post_type_exists( 'product' );
+
+		$rules->save(
+			array(
+				array_merge(
+					DSB_Rules::blank(),
+					array(
+						'id'           => DSB_Rules::new_id(),
+						'label'        => $has_products
+							? __( 'محصولات روزانه', 'daily-bale-post' )
+							: __( 'نوشته‌های روزانه', 'daily-bale-post' ),
+						'enabled'      => 1,
+						'post_types'   => $has_products ? array( 'product' ) : array( 'post' ),
+						'terms'        => $this->legacy_terms( $legacy, $has_products ),
+						'strategy'     => $has_products ? 'random' : 'newest',
+						'instock_only' => isset( $legacy['instock'] ) ? (int) $legacy['instock'] : 1,
+						'show_price'   => isset( $legacy['show_price'] ) ? (int) $legacy['show_price'] : 1,
+						'show_excerpt' => 1,
+						'avoid'        => isset( $legacy['avoid'] ) ? (int) $legacy['avoid'] : 20,
+						'photo_mode'   => $legacy['photo_mode'] ?? 'auto',
+						'destinations' => array( $destination_id ),
+						'days'         => isset( $legacy['days'] ) ? (array) $legacy['days'] : range( 0, 6 ),
+						'hour'         => isset( $legacy['hour'] ) ? (int) $legacy['hour'] : 10,
+						'minute'       => isset( $legacy['minute'] ) ? (int) $legacy['minute'] : 45,
+						'max_attempts' => isset( $legacy['max_attempts'] ) ? (int) $legacy['max_attempts'] : 3,
+					)
+				),
+			)
+		);
+	}
+
+	/**
+	 * تبدیل فیلتر دسته‌بندی قدیمی به ساختار جدید.
+	 *
+	 * @param array $legacy       تنظیمات قدیمی.
+	 * @param bool  $has_products آیا ووکامرس هست.
+	 * @return array
+	 */
+	private function legacy_terms( array $legacy, $has_products ) {
+		$cats = array_values( array_filter( array_map( 'absint', (array) ( $legacy['categories'] ?? array() ) ) ) );
+
+		if ( ! $cats || ! $has_products ) {
+			return array();
+		}
+
+		return array( 'product_cat' => $cats );
+	}
+
+	/**
+	 * خواندن تنظیمات نسخه‌های قبلی، از هر دو قالب ۳.x و ۴.x.
 	 *
 	 * @return array
 	 */
 	private function collect_legacy() {
-		$values = self::defaults();
+		$stored = get_option( self::OPTION, array() );
 
-		foreach ( self::$legacy_map as $old_key => $new_key ) {
-			$legacy = get_option( $old_key, null );
+		if ( is_array( $stored ) && ! empty( $stored ) ) {
+			return $stored;
+		}
 
-			if ( null === $legacy || false === $legacy ) {
+		$map = array(
+			'dsb_token'      => 'token',
+			'dsb_channel'    => 'channel',
+			'dsb_phone'      => 'phone',
+			'dsb_hour'       => 'hour',
+			'dsb_minute'     => 'minute',
+			'dsb_enabled'    => 'enabled',
+			'dsb_categories' => 'categories',
+			'dsb_avoid'      => 'avoid',
+			'dsb_instock'    => 'instock',
+			'dsb_days'       => 'days',
+			'dsb_show_price' => 'show_price',
+		);
+
+		$out = array();
+
+		foreach ( $map as $old => $new ) {
+			$value = get_option( $old, null );
+
+			if ( null === $value || false === $value ) {
 				continue;
 			}
 
-			if ( is_array( $values[ $new_key ] ) ) {
-				$values[ $new_key ] = array_values( array_filter( array_map( 'intval', (array) $legacy ), array( __CLASS__, 'is_weekday' ) ) );
-
-				if ( 'categories' === $new_key ) {
-					$values[ $new_key ] = array_values( array_filter( array_map( 'absint', (array) $legacy ) ) );
-				}
-			} elseif ( is_int( $values[ $new_key ] ) ) {
-				$values[ $new_key ] = (int) $legacy;
+			if ( in_array( $new, array( 'categories', 'days' ), true ) ) {
+				$out[ $new ] = array_values( array_map( 'intval', (array) $value ) );
+			} elseif ( in_array( $new, array( 'hour', 'minute', 'avoid', 'enabled', 'instock', 'show_price' ), true ) ) {
+				$out[ $new ] = (int) $value;
 			} else {
-				$values[ $new_key ] = is_scalar( $legacy ) ? (string) $legacy : '';
+				$out[ $new ] = is_scalar( $value ) ? (string) $value : '';
 			}
 		}
 
-		return $values;
+		return $out;
 	}
 }

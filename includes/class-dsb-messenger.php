@@ -1,6 +1,6 @@
 <?php
 /**
- * کلاینت HTTP پیام‌رسان بله.
+ * پایه‌ی کلاینت پیام‌رسان‌ها.
  *
  * @package DailyBalePost
  */
@@ -8,14 +8,13 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * ارسال درخواست به Bot API بله، با تلاش مجدد و پشتیبانی از آپلود فایل.
+ * رفتار مشترک بله و تلگرام.
+ *
+ * هر دو از Bot API تلگرام پیروی می‌کنند و تفاوتشان عملاً فقط
+ * نشانی سرور است؛ پس منطق ارسال، تلاش مجدد و آپلود فایل اینجا
+ * یک‌بار نوشته شده و کلاس‌های فرزند فقط نشانی و نام را می‌دهند.
  */
-class DSB_Bale_API {
-
-	/**
-	 * ریشه‌ی API.
-	 */
-	const ENDPOINT = 'https://tapi.bale.ai/bot';
+abstract class DSB_Messenger {
 
 	/**
 	 * بیشینه‌ی طول متن پیام.
@@ -32,33 +31,83 @@ class DSB_Bale_API {
 	 *
 	 * @var string
 	 */
-	private $token;
+	protected $token;
 
 	/**
-	 * شناسه‌ی کانال.
+	 * شناسه‌ی کانال یا گروه.
 	 *
 	 * @var string
 	 */
-	private $channel;
+	protected $chat_id;
 
 	/**
 	 * تعداد تلاش مجدد در خطاهای گذرا.
 	 *
 	 * @var int
 	 */
-	private $retries;
+	protected $retries;
 
 	/**
 	 * سازنده.
 	 *
 	 * @param string $token   توکن بات.
-	 * @param string $channel شناسه‌ی کانال.
+	 * @param string $chat_id شناسه‌ی کانال.
 	 * @param int    $retries تعداد تلاش مجدد.
 	 */
-	public function __construct( $token, $channel, $retries = 2 ) {
+	public function __construct( $token, $chat_id, $retries = 2 ) {
 		$this->token   = trim( (string) $token );
-		$this->channel = trim( (string) $channel );
+		$this->chat_id = trim( (string) $chat_id );
 		$this->retries = max( 0, (int) $retries );
+	}
+
+	/**
+	 * ریشه‌ی API این پیام‌رسان.
+	 *
+	 * @return string
+	 */
+	abstract public function endpoint();
+
+	/**
+	 * شناسه‌ی ماشینی پیام‌رسان.
+	 *
+	 * @return string
+	 */
+	abstract public function platform();
+
+	/**
+	 * نام نمایشی پیام‌رسان.
+	 *
+	 * @return string
+	 */
+	abstract public function label();
+
+	/**
+	 * ساخت کلاینت بر اساس نام پلتفرم.
+	 *
+	 * @param string $platform bale یا telegram.
+	 * @param string $token    توکن.
+	 * @param string $chat_id  شناسه‌ی کانال.
+	 * @param int    $retries  تلاش مجدد.
+	 * @return DSB_Messenger
+	 */
+	public static function make( $platform, $token, $chat_id, $retries = 2 ) {
+		if ( 'telegram' === $platform ) {
+			return new DSB_Messenger_Telegram( $token, $chat_id, $retries );
+		}
+
+		return new DSB_Messenger_Bale( $token, $chat_id, $retries );
+	}
+
+	/**
+	 * فهرست پیام‌رسان‌های پشتیبانی‌شده.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function platforms() {
+		return array(
+			'bale'     => __( 'بله', 'daily-bale-post' ),
+			'telegram' => __( 'تلگرام', 'daily-bale-post' ),
+		);
 	}
 
 	/**
@@ -67,7 +116,24 @@ class DSB_Bale_API {
 	 * @return bool
 	 */
 	public function is_configured() {
-		return '' !== $this->token && '' !== $this->channel;
+		return '' !== $this->token && '' !== $this->chat_id;
+	}
+
+	/**
+	 * بررسی سلامت اتصال.
+	 *
+	 * @return array پاسخ getMe.
+	 */
+	public function check() {
+		return $this->dispatch(
+			'getMe',
+			array(
+				'headers'     => array( 'Content-Type' => 'application/json' ),
+				'body'        => wp_json_encode( new stdClass() ),
+				'timeout'     => 20,
+				'data_format' => 'body',
+			)
+		);
 	}
 
 	/**
@@ -79,7 +145,7 @@ class DSB_Bale_API {
 	 */
 	public function send_message( $text, $reply_markup = null ) {
 		$payload = array(
-			'chat_id'    => $this->channel,
+			'chat_id'    => $this->chat_id,
 			'text'       => $this->trim_to( $text, self::MAX_TEXT ),
 			'parse_mode' => 'Markdown',
 		);
@@ -101,7 +167,7 @@ class DSB_Bale_API {
 	 */
 	public function send_photo_by_url( $photo_url, $caption, $reply_markup = null ) {
 		$payload = array(
-			'chat_id'    => $this->channel,
+			'chat_id'    => $this->chat_id,
 			'photo'      => $photo_url,
 			'caption'    => $this->trim_to( $caption, self::MAX_CAPTION ),
 			'parse_mode' => 'Markdown',
@@ -117,7 +183,7 @@ class DSB_Bale_API {
 	/**
 	 * ارسال تصویر با آپلود مستقیم فایل (multipart).
 	 *
-	 * وقتی بله نتواند لینک تصویر را از سایت بگیرد
+	 * وقتی سرور پیام‌رسان نتواند لینک تصویر را از سایت بگیرد
 	 * (خطای failed to get HTTP URL content) این مسیر جواب می‌دهد.
 	 *
 	 * @param string     $file_path    مسیر فایل روی سرور.
@@ -144,7 +210,7 @@ class DSB_Bale_API {
 		}
 
 		$fields = array(
-			'chat_id'    => $this->channel,
+			'chat_id'    => $this->chat_id,
 			'caption'    => $this->trim_to( $caption, self::MAX_CAPTION ),
 			'parse_mode' => 'Markdown',
 		);
@@ -171,7 +237,7 @@ class DSB_Bale_API {
 	 * @param array  $payload بدنه.
 	 * @return array
 	 */
-	private function request_json( $method, array $payload ) {
+	protected function request_json( $method, array $payload ) {
 		if ( ! $this->is_configured() ) {
 			return array(
 				'ok'    => false,
@@ -198,7 +264,7 @@ class DSB_Bale_API {
 	 * @param array  $file   آرایه‌ی name/type/bits.
 	 * @return array
 	 */
-	private function request_multipart( $method, array $fields, array $file ) {
+	protected function request_multipart( $method, array $fields, array $file ) {
 		if ( ! $this->is_configured() ) {
 			return array(
 				'ok'    => false,
@@ -242,12 +308,12 @@ class DSB_Bale_API {
 	 * @param array  $args   آرگومان‌های wp_remote_post.
 	 * @return array
 	 */
-	private function dispatch( $method, array $args ) {
-		$url      = self::ENDPOINT . $this->token . '/' . $method;
+	protected function dispatch( $method, array $args ) {
+		$url      = $this->endpoint() . $this->token . '/' . $method;
 		$attempts = $this->retries + 1;
 		$last     = array(
 			'ok'    => false,
-			'error' => __( 'پاسخی از بله دریافت نشد.', 'daily-bale-post' ),
+			'error' => __( 'پاسخی دریافت نشد.', 'daily-bale-post' ),
 		);
 
 		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
@@ -297,7 +363,7 @@ class DSB_Bale_API {
 	 * @param int    $limit حد مجاز.
 	 * @return string
 	 */
-	private function trim_to( $text, $limit ) {
+	protected function trim_to( $text, $limit ) {
 		$text = (string) $text;
 
 		if ( mb_strlen( $text ) <= $limit ) {
@@ -308,7 +374,7 @@ class DSB_Bale_API {
 	}
 
 	/**
-	 * استخراج پیام خطای خوانا از پاسخ بله.
+	 * استخراج پیام خطای خوانا از پاسخ.
 	 *
 	 * @param array $result پاسخ.
 	 * @return string

@@ -39,6 +39,20 @@ final class DSB_Plugin {
 	public $logger;
 
 	/**
+	 * مقصدهای ارسال.
+	 *
+	 * @var DSB_Destinations
+	 */
+	public $destinations;
+
+	/**
+	 * قوانین انتشار.
+	 *
+	 * @var DSB_Rules
+	 */
+	public $rules;
+
+	/**
 	 * انتشاردهنده.
 	 *
 	 * @var DSB_Publisher
@@ -95,7 +109,7 @@ final class DSB_Plugin {
 	/**
 	 * بارگذاری خودکار کلاس‌ها بر اساس قرارداد نام‌گذاری وردپرس.
 	 *
-	 * DSB_Bale_API  =>  includes/class-dsb-bale-api.php
+	 * DSB_Messenger_Bale  =>  includes/class-dsb-messenger-bale.php
 	 *
 	 * @param string $class نام کلاس درخواستی.
 	 * @return void
@@ -118,14 +132,24 @@ final class DSB_Plugin {
 	 * @return void
 	 */
 	private function init_components() {
-		$this->settings  = new DSB_Settings();
-		$this->logger    = new DSB_Logger();
-		$this->publisher = new DSB_Publisher( $this->settings, $this->logger );
-		$this->health    = new DSB_Health( $this->settings, $this->logger );
-		$this->scheduler = new DSB_Scheduler( $this->settings, $this->publisher, $this->health );
+		$this->settings     = new DSB_Settings();
+		$this->logger       = new DSB_Logger();
+		$this->destinations = new DSB_Destinations();
+		$this->rules        = new DSB_Rules();
+		$this->publisher    = new DSB_Publisher( $this->settings, $this->logger, $this->destinations );
+		$this->health       = new DSB_Health( $this->settings, $this->logger, $this->rules );
+		$this->scheduler    = new DSB_Scheduler( $this->settings, $this->rules, $this->publisher, $this->health );
 
 		if ( is_admin() ) {
-			$this->admin = new DSB_Admin( $this->settings, $this->logger, $this->publisher, $this->scheduler, $this->health );
+			$this->admin = new DSB_Admin(
+				$this->settings,
+				$this->logger,
+				$this->destinations,
+				$this->rules,
+				$this->publisher,
+				$this->scheduler,
+				$this->health
+			);
 		}
 	}
 
@@ -161,7 +185,7 @@ final class DSB_Plugin {
 	 */
 	public static function activate() {
 		$plugin = self::instance();
-		$plugin->settings->install();
+		$plugin->settings->install( $plugin->destinations, $plugin->rules );
 		$plugin->scheduler->reschedule();
 		update_option( self::VERSION_OPTION, DSB_VERSION, false );
 	}
@@ -187,7 +211,7 @@ final class DSB_Plugin {
 			return;
 		}
 
-		$this->settings->install();
+		$this->settings->install( $this->destinations, $this->rules );
 
 		// نسخه‌های پیش از ۴.۰ یک رویداد روزانه‌ی تک‌شلیکی داشتند که گم می‌شد.
 		$this->scheduler->drop_legacy_event();

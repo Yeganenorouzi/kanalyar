@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * تشخیص اینکه ارسال روزانه واقعاً دارد انجام می‌شود یا نه.
+ * تشخیص اینکه انتشار خودکار واقعاً دارد انجام می‌شود یا نه.
  */
 class DSB_Health {
 
@@ -47,31 +47,39 @@ class DSB_Health {
 	private $logger;
 
 	/**
+	 * قوانین.
+	 *
+	 * @var DSB_Rules
+	 */
+	private $rules;
+
+	/**
 	 * سازنده.
 	 *
 	 * @param DSB_Settings $settings تنظیمات.
 	 * @param DSB_Logger   $logger   تاریخچه.
+	 * @param DSB_Rules    $rules    قوانین.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Logger $logger ) {
+	public function __construct( DSB_Settings $settings, DSB_Logger $logger, DSB_Rules $rules ) {
 		$this->settings = $settings;
 		$this->logger   = $logger;
+		$this->rules    = $rules;
 	}
 
 	/**
 	 * تعداد روزهای گذشته از آخرین ارسال موفق.
 	 *
+	 * @param string $rule نام قانون؛ خالی یعنی کل افزونه.
 	 * @return int|null null یعنی هنوز هیچ ارسال موفقی ثبت نشده.
 	 */
-	public function days_since_success() {
-		$last = $this->logger->last_success();
+	public function days_since_success( $rule = '' ) {
+		$last = $this->logger->last_success( $rule );
 
 		if ( ! $last ) {
 			return null;
 		}
 
-		$diff = time() - (int) $last['time'];
-
-		return (int) floor( $diff / DAY_IN_SECONDS );
+		return (int) floor( ( time() - (int) $last['time'] ) / DAY_IN_SECONDS );
 	}
 
 	/**
@@ -83,15 +91,18 @@ class DSB_Health {
 	public function report( DSB_Scheduler $scheduler ) {
 		$last_tick = $scheduler->last_tick();
 		$last_cron = $scheduler->last_cron_tick();
-		$next_tick = $scheduler->next_tick();
 		$days      = $this->days_since_success();
 
-		// اگر بیش از نیم ساعت هیچ بررسی‌ای انجام نشده، چرخه مشکل دارد.
 		$check_ok   = ( $last_tick && ( time() - $last_tick ) < self::TICK_MAX_AGE );
 		$cron_state = $this->cron_state( $last_cron, $scheduler->scheduled_at() );
-		$cron_ok    = ( 'ok' === $cron_state );
 
-		if ( null === $days ) {
+		$active_rules = count( $this->rules->active() );
+
+		if ( ! $this->settings->get( 'enabled' ) ) {
+			$level = 'off';
+		} elseif ( 0 === $active_rules ) {
+			$level = 'warn';
+		} elseif ( null === $days ) {
 			$level = $this->is_fresh_install() ? 'good' : 'warn';
 		} elseif ( $days >= self::STALE_DAYS ) {
 			$level = 'bad';
@@ -101,21 +112,19 @@ class DSB_Health {
 			$level = 'good';
 		}
 
-		if ( ! $this->settings->get( 'enabled' ) ) {
-			$level = 'off';
-		}
-
 		return array(
 			'level'        => $level,
-			'cron_ok'      => $cron_ok,
+			'cron_ok'      => ( 'ok' === $cron_state ),
 			'cron_state'   => $cron_state,
 			'check_ok'     => $check_ok,
 			'last_tick'    => $last_tick,
 			'last_cron'    => $last_cron,
-			'next_tick'    => $next_tick,
+			'next_tick'    => $scheduler->next_tick(),
 			'last_success' => $this->logger->last_success(),
 			'last_entry'   => $this->logger->last(),
 			'days_since'   => $days,
+			'active_rules' => $active_rules,
+			'total_rules'  => count( $this->rules->all() ),
 			'wp_cron_off'  => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
 		);
 	}
@@ -135,7 +144,6 @@ class DSB_Health {
 			return 'ok';
 		}
 
-		// هرگز اجرا نشده، ولی تازه ثبت شده است.
 		if ( ! $last_cron && $scheduled_at && ( time() - $scheduled_at ) < self::TICK_MAX_AGE ) {
 			return 'pending';
 		}
@@ -145,9 +153,6 @@ class DSB_Health {
 
 	/**
 	 * آیا افزونه تازه نصب شده است.
-	 *
-	 * روی نصب تازه هنوز طبیعی است که هیچ ارسالی ثبت نشده باشد،
-	 * پس نه هشدار می‌دهیم نه وضعیت را قرمز می‌کنیم.
 	 *
 	 * @return bool
 	 */
@@ -173,13 +178,17 @@ class DSB_Health {
 			return false;
 		}
 
+		// بدون قانون فعال، چیزی برای هشدار دادن نیست.
+		if ( ! $this->rules->active() ) {
+			return false;
+		}
+
 		$days = $this->days_since_success();
 
 		if ( null !== $days && $days < self::STALE_DAYS ) {
 			return false;
 		}
 
-		// نصب تازه؛ هنوز وقت هشدار نیست.
 		if ( null === $days && $this->is_fresh_install() ) {
 			return false;
 		}
@@ -207,7 +216,7 @@ class DSB_Health {
 		$panel = admin_url( 'admin.php?page=dsb-settings' );
 
 		/* translators: %s: نام سایت. */
-		$subject = sprintf( __( '[%s] ارسال روزانه به بله انجام نشده است', 'daily-bale-post' ), $site );
+		$subject = sprintf( __( '[%s] انتشار خودکار انجام نشده است', 'daily-bale-post' ), $site );
 
 		$lines = array();
 
@@ -231,7 +240,7 @@ class DSB_Health {
 
 		$lines[] = '';
 		$lines[] = __( 'بررسی‌های پیشنهادی:', 'daily-bale-post' );
-		$lines[] = __( '۱. توکن بات و دسترسی ادمین بودنش در کانال.', 'daily-bale-post' );
+		$lines[] = __( '۱. توکن بات و ادمین بودنش در کانال.', 'daily-bale-post' );
 		$lines[] = __( '۲. صفحه‌ی تنظیمات افزونه، بخش «وضعیت سلامت».', 'daily-bale-post' );
 		$lines[] = __( '۳. فعال بودن cron سمت سرور.', 'daily-bale-post' );
 		$lines[] = '';

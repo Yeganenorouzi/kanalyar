@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Daily Bale Post
  * Plugin URI:        https://github.com/Yeganenorouzi/kanalyar
- * Description:       ارسال خودکار روزانه‌ی یک محصول ووکامرس به کانال بله — با زمان‌بندی مقاوم، تلاش مجدد، ارسال مطمئن تصویر و پایش سلامت.
- * Version:           4.1.0
+ * Description:       انتشار خودکار محتوای سایت (محصول، نوشته، برگه و هر نوع دیگر) در کانال‌های بله و تلگرام — با قوانین مستقل، زمان‌بندی مقاوم و پایش سلامت.
+ * Version:           5.0.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Yegane Norouzi
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'DSB_VERSION', '4.1.0' );
+define( 'DSB_VERSION', '5.0.0' );
 define( 'DSB_FILE', __FILE__ );
 define( 'DSB_PATH', plugin_dir_path( __FILE__ ) );
 define( 'DSB_URL', plugin_dir_url( __FILE__ ) );
