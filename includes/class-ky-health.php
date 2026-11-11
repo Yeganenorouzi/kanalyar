@@ -179,7 +179,7 @@ class KY_Health {
 		}
 
 		// بدون قانون فعال، چیزی برای هشدار دادن نیست.
-		if ( ! $this->rules->active() ) {
+		if ( ! $this->rules->scheduled() ) {
 			return false;
 		}
 

@@ -68,11 +68,12 @@ class KY_Publisher {
 	 * اگر حداقل یک مقصد موفق باشد، نتیجه موفق است و مطلب در
 	 * تاریخچه‌ی قانون ثبت می‌شود تا دوباره انتخاب نشود.
 	 *
-	 * @param array  $rule   قانون.
-	 * @param string $source منبع اجرا: auto | manual.
+	 * @param array        $rule   قانون.
+	 * @param string       $source منبع اجرا: auto | manual | publish.
+	 * @param WP_Post|null $post   مطلب مشخص؛ خالی یعنی خودِ قانون انتخاب کند.
 	 * @return array{ok:bool,message:string,title:string,results:array}
 	 */
-	public function publish( array $rule, $source = 'auto' ) {
+	public function publish( array $rule, $source = 'auto', $post = null ) {
 		$targets = $this->destinations->pick( (array) $rule['destinations'] );
 
 		if ( ! $targets ) {
@@ -84,7 +85,9 @@ class KY_Publisher {
 			);
 		}
 
-		$post = $this->selector->pick( $rule );
+		if ( ! $post instanceof WP_Post ) {
+			$post = $this->selector->pick( $rule );
+		}
 
 		if ( is_wp_error( $post ) ) {
 			return $this->fail( $rule, '—', $post->get_error_message(), $source );
@@ -189,9 +192,18 @@ class KY_Publisher {
 	 * @return array
 	 */
 	private function send( KY_Messenger $api, array $parts, array $rule ) {
-		$mode   = (string) $rule['photo_mode'];
-		$markup = $parts['reply_markup'];
-		$text   = $parts['text'];
+		$mode = (string) $rule['photo_mode'];
+
+		// هر پیام‌رسان قالب‌بندی و دکمه را پشتیبانی نمی‌کند؛ ایتا هیچ‌کدام را.
+		$text   = $api->supports_markdown() ? $parts['text'] : $parts['plain'];
+		$markup = $api->supports_buttons() ? $parts['reply_markup'] : null;
+
+		$api->with(
+			array(
+				'silent' => ! empty( $rule['silent'] ),
+				'pin'    => ! empty( $rule['pin'] ),
+			)
+		);
 
 		if ( 'none' === $mode || ( '' === $parts['photo_url'] && '' === $parts['photo_path'] ) ) {
 			return $api->send_message( $text, $markup );

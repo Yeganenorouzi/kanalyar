@@ -644,3 +644,49 @@
 	direction: ltr;
 	text-align: left;
 }
+
+/* ─── قالب پیام ─── */
+.ky-template textarea {
+	width: 100%;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 12.5px;
+	line-height: 1.9;
+	direction: rtl;
+}
+
+.ky-tokens {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.ky-token {
+	background: #f0f0f1;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	padding: 2px 8px;
+	font-size: 11.5px;
+	cursor: help;
+	direction: ltr;
+}
+
+/* ─── جعبه‌ی صفحه‌ی ویرایش ─── */
+.ky-box-rules {
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+	font-size: 12.5px;
+}
+
+.ky-box-rules li {
+	padding: 8px 0;
+	border-bottom: 1px dashed #e2e4e7;
+}
+
+.ky-box-rules li:last-child {
+	border-bottom: none;
+}
+
+.ky-box-ok { color: #1a7f37; }
+.ky-box-pending { color: #996800; }

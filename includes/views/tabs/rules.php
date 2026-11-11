@@ -15,6 +15,8 @@ $ky_destinations = $this->all_destinations();
 $ky_types        = KY_Rules::available_post_types();
 $ky_strategies   = KY_Rules::strategies();
 $ky_photo_modes  = KY_Settings::photo_modes();
+$ky_triggers     = KY_Rules::triggers();
+$ky_hashtags     = KY_Rules::hashtag_sources();
 $ky_weekdays     = KY_Admin::weekdays();
 ?>
 
@@ -103,6 +105,18 @@ $ky_weekdays     = KY_Admin::weekdays();
 					</label>
 
 					<label>
+						<span><?php esc_html_e( 'چه وقت اجرا شود', 'kanalyar' ); ?></span>
+						<select name="<?php echo esc_attr( $ky_name ); ?>[trigger]" class="ky-trigger">
+							<?php foreach ( $ky_triggers as $ky_tk => $ky_tl ) : ?>
+								<option value="<?php echo esc_attr( $ky_tk ); ?>" <?php selected( $ky_rule['trigger'], $ky_tk ); ?>>
+									<?php echo esc_html( $ky_tl ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+						<small><?php esc_html_e( '«هنگام انتشار» مطلب تازه را فوری می‌فرستد.', 'kanalyar' ); ?></small>
+					</label>
+
+					<label>
 						<span><?php esc_html_e( 'ترتیب انتخاب', 'kanalyar' ); ?></span>
 						<select name="<?php echo esc_attr( $ky_name ); ?>[strategy]">
 							<?php foreach ( $ky_strategies as $ky_sk => $ky_sl ) : ?>
@@ -149,6 +163,20 @@ $ky_weekdays     = KY_Admin::weekdays();
 					</div>
 				<?php endif; ?>
 
+				<div class="ky-grid">
+					<label>
+						<span><?php esc_html_e( 'هشتگ', 'kanalyar' ); ?></span>
+						<select name="<?php echo esc_attr( $ky_name ); ?>[hashtags]">
+							<?php foreach ( $ky_hashtags as $ky_hk => $ky_hl ) : ?>
+								<option value="<?php echo esc_attr( $ky_hk ); ?>" <?php selected( $ky_rule['hashtags'], $ky_hk ); ?>>
+									<?php echo esc_html( $ky_hl ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+						<small><?php esc_html_e( 'با جای‌نشان {hashtags} در قالب پیام نمایش داده می‌شود.', 'kanalyar' ); ?></small>
+					</label>
+				</div>
+
 				<div class="ky-checks">
 					<label>
 						<input type="checkbox" name="<?php echo esc_attr( $ky_name ); ?>[show_excerpt]" value="1" <?php checked( $ky_rule['show_excerpt'], 1 ); ?>>
@@ -162,6 +190,26 @@ $ky_weekdays     = KY_Admin::weekdays();
 						<input type="checkbox" name="<?php echo esc_attr( $ky_name ); ?>[instock_only]" value="1" <?php checked( $ky_rule['instock_only'], 1 ); ?>>
 						<?php esc_html_e( 'فقط محصولات موجود', 'kanalyar' ); ?>
 					</label>
+					<label>
+						<input type="checkbox" name="<?php echo esc_attr( $ky_name ); ?>[silent]" value="1" <?php checked( $ky_rule['silent'], 1 ); ?>>
+						<?php esc_html_e( 'ارسال بی‌صدا (بدون اعلان)', 'kanalyar' ); ?>
+					</label>
+					<label>
+						<input type="checkbox" name="<?php echo esc_attr( $ky_name ); ?>[pin]" value="1" <?php checked( $ky_rule['pin'], 1 ); ?>>
+						<?php esc_html_e( 'سنجاق‌کردن در کانال', 'kanalyar' ); ?>
+					</label>
+				</div>
+
+				<h3 class="ky-sub-head"><?php esc_html_e( 'قالب پیام', 'kanalyar' ); ?></h3>
+				<div class="ky-template">
+					<textarea name="<?php echo esc_attr( $ky_name ); ?>[template]" rows="7"
+						placeholder="<?php echo esc_attr( KY_Message::DEFAULT_TEMPLATE ); ?>"><?php echo esc_textarea( $ky_rule['template'] ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'خالی بگذارید تا قالب پیش‌فرض استفاده شود. جای‌نشان‌های موجود:', 'kanalyar' ); ?></p>
+					<div class="ky-tokens">
+						<?php foreach ( KY_Message::placeholders() as $ky_token => $ky_desc ) : ?>
+							<code class="ky-token" title="<?php echo esc_attr( $ky_desc ); ?>"><?php echo esc_html( $ky_token ); ?></code>
+						<?php endforeach; ?>
+					</div>
 				</div>
 
 				<h3 class="ky-sub-head"><?php esc_html_e( 'به کدام کانال‌ها', 'kanalyar' ); ?></h3>

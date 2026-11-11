@@ -263,7 +263,7 @@ class KY_Scheduler {
 	 * @return bool
 	 */
 	public function has_due_rule() {
-		foreach ( $this->rules->active() as $rule ) {
+		foreach ( $this->rules->scheduled() as $rule ) {
 			if ( 'due' === $this->due_state( $rule )['code'] ) {
 				return true;
 			}
@@ -280,7 +280,7 @@ class KY_Scheduler {
 	public function run_due_rules() {
 		$out = array();
 
-		foreach ( $this->rules->active() as $rule ) {
+		foreach ( $this->rules->scheduled() as $rule ) {
 			$out[ $rule['id'] ] = $this->maybe_publish( $rule );
 		}
 
@@ -304,6 +304,10 @@ class KY_Scheduler {
 
 		if ( empty( $rule['destinations'] ) ) {
 			return $this->state( 'no-destination', __( 'مقصدی برای این قانون انتخاب نشده است.', 'kanalyar' ) );
+		}
+
+		if ( 'publish' === ( $rule['trigger'] ?? 'schedule' ) ) {
+			return $this->state( 'on-publish', __( 'این قانون فقط هنگام انتشار مطلب اجرا می‌شود.', 'kanalyar' ) );
 		}
 
 		$now   = KY_Settings::now();

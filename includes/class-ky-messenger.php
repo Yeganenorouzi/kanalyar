@@ -48,6 +48,20 @@ abstract class KY_Messenger {
 	protected $retries;
 
 	/**
+	 * ارسال بی‌صدا (بدون اعلان روی گوشی).
+	 *
+	 * @var bool
+	 */
+	protected $silent = false;
+
+	/**
+	 * سنجاق‌کردن پیام در کانال پس از ارسال.
+	 *
+	 * @var bool
+	 */
+	protected $pin = false;
+
+	/**
 	 * سازنده.
 	 *
 	 * @param string $token   توکن بات.
@@ -58,6 +72,37 @@ abstract class KY_Messenger {
 		$this->token   = trim( (string) $token );
 		$this->chat_id = trim( (string) $chat_id );
 		$this->retries = max( 0, (int) $retries );
+	}
+
+	/**
+	 * تنظیم ویژگی‌های ارسال.
+	 *
+	 * @param array $options کلیدهای silent و pin.
+	 * @return $this
+	 */
+	public function with( array $options ) {
+		$this->silent = ! empty( $options['silent'] );
+		$this->pin    = ! empty( $options['pin'] );
+
+		return $this;
+	}
+
+	/**
+	 * آیا این پیام‌رسان قالب‌بندی مارک‌داون را می‌فهمد.
+	 *
+	 * @return bool
+	 */
+	public function supports_markdown() {
+		return true;
+	}
+
+	/**
+	 * آیا این پیام‌رسان دکمه‌ی شیشه‌ای دارد.
+	 *
+	 * @return bool
+	 */
+	public function supports_buttons() {
+		return true;
 	}
 
 	/**
@@ -91,11 +136,16 @@ abstract class KY_Messenger {
 	 * @return KY_Messenger
 	 */
 	public static function make( $platform, $token, $chat_id, $retries = 2 ) {
-		if ( 'telegram' === $platform ) {
-			return new KY_Messenger_Telegram( $token, $chat_id, $retries );
-		}
+		switch ( $platform ) {
+			case 'telegram':
+				return new KY_Messenger_Telegram( $token, $chat_id, $retries );
 
-		return new KY_Messenger_Bale( $token, $chat_id, $retries );
+			case 'eitaa':
+				return new KY_Messenger_Eitaa( $token, $chat_id, $retries );
+
+			default:
+				return new KY_Messenger_Bale( $token, $chat_id, $retries );
+		}
 	}
 
 	/**
@@ -107,6 +157,7 @@ abstract class KY_Messenger {
 		return array(
 			'bale'     => __( 'بله', 'kanalyar' ),
 			'telegram' => __( 'تلگرام', 'kanalyar' ),
+			'eitaa'    => __( 'ایتا', 'kanalyar' ),
 		);
 	}
 
@@ -154,7 +205,11 @@ abstract class KY_Messenger {
 			$payload['reply_markup'] = $reply_markup;
 		}
 
-		return $this->request_json( 'sendMessage', $payload );
+		if ( $this->silent ) {
+			$payload['disable_notification'] = true;
+		}
+
+		return $this->after_send( $this->request_json( 'sendMessage', $payload ) );
 	}
 
 	/**
@@ -177,7 +232,11 @@ abstract class KY_Messenger {
 			$payload['reply_markup'] = $reply_markup;
 		}
 
-		return $this->request_json( 'sendPhoto', $payload );
+		if ( $this->silent ) {
+			$payload['disable_notification'] = true;
+		}
+
+		return $this->after_send( $this->request_json( 'sendPhoto', $payload ) );
 	}
 
 	/**
@@ -219,6 +278,10 @@ abstract class KY_Messenger {
 			$fields['reply_markup'] = wp_json_encode( $reply_markup );
 		}
 
+		if ( $this->silent ) {
+			$fields['disable_notification'] = 'true';
+		}
+
 		$type = wp_check_filetype( $file_path );
 
 		$file = array(
@@ -227,7 +290,37 @@ abstract class KY_Messenger {
 			'bits' => $bits,
 		);
 
-		return $this->request_multipart( 'sendPhoto', $fields, $file );
+		return $this->after_send( $this->request_multipart( 'sendPhoto', $fields, $file ) );
+	}
+
+	/**
+	 * کارهای بعد از ارسال موفق؛ فعلاً فقط سنجاق‌کردن.
+	 *
+	 * شکست سنجاق، ارسال را ناموفق نمی‌کند: پست رفته و همین مهم است.
+	 *
+	 * @param array $result پاسخ ارسال.
+	 * @return array
+	 */
+	protected function after_send( array $result ) {
+		if ( ! $this->pin || empty( $result['ok'] ) ) {
+			return $result;
+		}
+
+		$message_id = $result['result']['message_id'] ?? 0;
+
+		if ( ! $message_id ) {
+			return $result;
+		}
+
+		$this->request_json(
+			'pinChatMessage',
+			array(
+				'chat_id'    => $this->chat_id,
+				'message_id' => $message_id,
+			)
+		);
+
+		return $result;
 	}
 
 	/**
@@ -282,8 +375,10 @@ abstract class KY_Messenger {
 			$body .= $value . $eol;
 		}
 
+		$field = isset( $file['field'] ) ? $file['field'] : 'photo';
+
 		$body .= '--' . $boundary . $eol;
-		$body .= 'Content-Disposition: form-data; name="photo"; filename="' . $file['name'] . '"' . $eol;
+		$body .= 'Content-Disposition: form-data; name="' . $field . '"; filename="' . $file['name'] . '"' . $eol;
 		$body .= 'Content-Type: ' . $file['type'] . $eol . $eol;
 		$body .= $file['bits'] . $eol;
 		$body .= '--' . $boundary . '--' . $eol;

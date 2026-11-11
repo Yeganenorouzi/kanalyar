@@ -38,6 +38,33 @@ class KY_Rules {
 	}
 
 	/**
+	 * محرک‌های اجرای یک قانون.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function triggers() {
+		return array(
+			'schedule' => __( 'زمان‌بندی — هر روز سر ساعت، یک مطلب', 'kanalyar' ),
+			'publish'  => __( 'هنگام انتشار — به‌محض منتشر شدن مطلب تازه', 'kanalyar' ),
+			'both'     => __( 'هر دو — هم فوری هنگام انتشار، هم زمان‌بندی روزانه', 'kanalyar' ),
+		);
+	}
+
+	/**
+	 * منابع ساخت هشتگ.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function hashtag_sources() {
+		return array(
+			'none'       => __( 'بدون هشتگ', 'kanalyar' ),
+			'tags'       => __( 'از برچسب‌ها', 'kanalyar' ),
+			'categories' => __( 'از دسته‌بندی‌ها', 'kanalyar' ),
+			'both'       => __( 'از برچسب‌ها و دسته‌بندی‌ها', 'kanalyar' ),
+		);
+	}
+
+	/**
 	 * ساختار پیش‌فرض یک قانون.
 	 *
 	 * @return array
@@ -61,6 +88,11 @@ class KY_Rules {
 			'minute'       => 45,
 			'max_attempts' => 3,
 			'cta'          => '',
+			'template'     => '',
+			'trigger'      => 'schedule',
+			'hashtags'     => 'tags',
+			'silent'       => 0,
+			'pin'          => 0,
 		);
 	}
 
@@ -103,6 +135,70 @@ class KY_Rules {
 	}
 
 	/**
+	 * قوانین فعالی که زمان‌بندی روزانه دارند.
+	 *
+	 * @return array[]
+	 */
+	public function scheduled() {
+		return array_values(
+			array_filter(
+				$this->active(),
+				function ( $row ) {
+					return in_array( $row['trigger'], array( 'schedule', 'both' ), true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * قوانین فعالی که هنگام انتشار مطلب اجرا می‌شوند.
+	 *
+	 * @return array[]
+	 */
+	public function on_publish() {
+		return array_values(
+			array_filter(
+				$this->active(),
+				function ( $row ) {
+					return in_array( $row['trigger'], array( 'publish', 'both' ), true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * آیا یک مطلب با فیلترهای یک قانون می‌خواند.
+	 *
+	 * @param array   $rule قانون.
+	 * @param WP_Post $post مطلب.
+	 * @return bool
+	 */
+	public static function matches( array $rule, WP_Post $post ) {
+		if ( ! in_array( $post->post_type, (array) $rule['post_types'], true ) ) {
+			return false;
+		}
+
+		$terms = (array) $rule['terms'];
+
+		if ( ! $terms ) {
+			return true;
+		}
+
+		// فیلتر دسته‌بندی‌ها با OR ترکیب می‌شود، مثل خود کوئری.
+		foreach ( $terms as $taxonomy => $ids ) {
+			if ( ! $ids || ! taxonomy_exists( $taxonomy ) ) {
+				continue;
+			}
+
+			if ( has_term( array_map( 'absint', $ids ), $taxonomy, $post ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * یک قانون بر اساس شناسه.
 	 *
 	 * @param string $id شناسه.
@@ -138,6 +234,8 @@ class KY_Rules {
 	public function sanitize( array $raw ) {
 		$strategies  = self::strategies();
 		$photo_modes = KY_Settings::photo_modes();
+		$triggers    = self::triggers();
+		$hashtags    = self::hashtag_sources();
 		$out         = array();
 		$seen        = array();
 
@@ -173,6 +271,11 @@ class KY_Rules {
 
 			$strategy = sanitize_key( $row['strategy'] ?? 'random' );
 			$photo    = sanitize_key( $row['photo_mode'] ?? 'auto' );
+			$trigger  = sanitize_key( $row['trigger'] ?? 'schedule' );
+			$hashtag  = sanitize_key( $row['hashtags'] ?? 'tags' );
+
+			// قالب پیام می‌تواند چند خطی باشد، پس sanitize_textarea_field.
+			$template = isset( $row['template'] ) ? sanitize_textarea_field( $row['template'] ) : '';
 
 			$out[] = array(
 				'id'           => $id,
@@ -192,6 +295,11 @@ class KY_Rules {
 				'minute'       => max( 0, min( 59, (int) ( $row['minute'] ?? 45 ) ) ),
 				'max_attempts' => max( 1, min( 10, (int) ( $row['max_attempts'] ?? 3 ) ) ),
 				'cta'          => sanitize_text_field( $row['cta'] ?? '' ),
+				'template'     => $template,
+				'trigger'      => isset( $triggers[ $trigger ] ) ? $trigger : 'schedule',
+				'hashtags'     => isset( $hashtags[ $hashtag ] ) ? $hashtag : 'tags',
+				'silent'       => empty( $row['silent'] ) ? 0 : 1,
+				'pin'          => empty( $row['pin'] ) ? 0 : 1,
 			);
 		}
 
