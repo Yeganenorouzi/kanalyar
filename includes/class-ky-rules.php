@@ -2,7 +2,7 @@
 /**
  * قوانین انتشار: چه محتوایی، به کدام مقصدها، چه زمانی.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * نگه‌داری و اعتبارسنجی قوانین انتشار.
  */
-class DSB_Rules {
+class KY_Rules {
 
 	/**
 	 * نام آپشن.
@@ -31,9 +31,9 @@ class DSB_Rules {
 	 */
 	public static function strategies() {
 		return array(
-			'random' => __( 'تصادفی — مناسب کاتالوگ محصولات', 'daily-bale-post' ),
-			'newest' => __( 'جدیدترینِ ارسال‌نشده — مناسب بلاگ و اخبار', 'daily-bale-post' ),
-			'oldest' => __( 'قدیمی‌ترینِ ارسال‌نشده — بازنشر آرشیو', 'daily-bale-post' ),
+			'random' => __( 'تصادفی — مناسب کاتالوگ محصولات', 'kanalyar' ),
+			'newest' => __( 'جدیدترینِ ارسال‌نشده — مناسب بلاگ و اخبار', 'kanalyar' ),
+			'oldest' => __( 'قدیمی‌ترینِ ارسال‌نشده — بازنشر آرشیو', 'kanalyar' ),
 		);
 	}
 
@@ -137,7 +137,7 @@ class DSB_Rules {
 	 */
 	public function sanitize( array $raw ) {
 		$strategies  = self::strategies();
-		$photo_modes = DSB_Settings::photo_modes();
+		$photo_modes = KY_Settings::photo_modes();
 		$out         = array();
 		$seen        = array();
 
@@ -165,7 +165,7 @@ class DSB_Rules {
 			$seen[ $id ] = true;
 
 			$days = isset( $row['days'] ) ? array_map( 'intval', (array) $row['days'] ) : array();
-			$days = array_values( array_unique( array_filter( $days, array( 'DSB_Settings', 'is_weekday' ) ) ) );
+			$days = array_values( array_unique( array_filter( $days, array( 'KY_Settings', 'is_weekday' ) ) ) );
 			sort( $days );
 
 			$dests = isset( $row['destinations'] ) ? (array) $row['destinations'] : array();
@@ -176,7 +176,7 @@ class DSB_Rules {
 
 			$out[] = array(
 				'id'           => $id,
-				'label'        => '' !== $label ? $label : __( 'قانون بدون نام', 'daily-bale-post' ),
+				'label'        => '' !== $label ? $label : __( 'قانون بدون نام', 'kanalyar' ),
 				'enabled'      => empty( $row['enabled'] ) ? 0 : 1,
 				'post_types'   => $types ? $types : array( 'post' ),
 				'terms'        => self::sanitize_terms( $row['terms'] ?? array() ),
@@ -263,6 +263,9 @@ class DSB_Rules {
 		 *
 		 * @param array $out نوع‌ها.
 		 */
+		$out = apply_filters( 'ky_available_post_types', $out );
+
+		// نام فیلتر در نسخه‌های پیش از ۶.
 		return apply_filters( 'dsb_available_post_types', $out );
 	}
 

@@ -2,7 +2,7 @@
 /**
  * هسته‌ی افزونه: بارگذاری کلاس‌ها، سیم‌کشی هوک‌ها، نصب و حذف.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * کلاس اصلی افزونه (Singleton).
  */
-final class DSB_Plugin {
+final class KY_Plugin {
 
 	/**
 	 * کلید آپشنی که نسخه‌ی نصب‌شده را نگه می‌دارد.
@@ -20,70 +20,70 @@ final class DSB_Plugin {
 	/**
 	 * نمونه‌ی یکتا.
 	 *
-	 * @var DSB_Plugin|null
+	 * @var KY_Plugin|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * تنظیمات.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	public $settings;
 
 	/**
 	 * تاریخچه.
 	 *
-	 * @var DSB_Logger
+	 * @var KY_Logger
 	 */
 	public $logger;
 
 	/**
 	 * مقصدهای ارسال.
 	 *
-	 * @var DSB_Destinations
+	 * @var KY_Destinations
 	 */
 	public $destinations;
 
 	/**
 	 * قوانین انتشار.
 	 *
-	 * @var DSB_Rules
+	 * @var KY_Rules
 	 */
 	public $rules;
 
 	/**
 	 * انتشاردهنده.
 	 *
-	 * @var DSB_Publisher
+	 * @var KY_Publisher
 	 */
 	public $publisher;
 
 	/**
 	 * زمان‌بند.
 	 *
-	 * @var DSB_Scheduler
+	 * @var KY_Scheduler
 	 */
 	public $scheduler;
 
 	/**
 	 * پایش سلامت.
 	 *
-	 * @var DSB_Health
+	 * @var KY_Health
 	 */
 	public $health;
 
 	/**
 	 * پنل مدیریت.
 	 *
-	 * @var DSB_Admin
+	 * @var KY_Admin
 	 */
 	public $admin;
 
 	/**
 	 * گرفتن نمونه‌ی یکتا.
 	 *
-	 * @return DSB_Plugin
+	 * @return KY_Plugin
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -109,17 +109,17 @@ final class DSB_Plugin {
 	/**
 	 * بارگذاری خودکار کلاس‌ها بر اساس قرارداد نام‌گذاری وردپرس.
 	 *
-	 * DSB_Messenger_Bale  =>  includes/class-dsb-messenger-bale.php
+	 * KY_Messenger_Bale  =>  includes/class-ky-messenger-bale.php
 	 *
 	 * @param string $class نام کلاس درخواستی.
 	 * @return void
 	 */
 	public static function autoload( $class ) {
-		if ( 0 !== strpos( $class, 'DSB_' ) ) {
+		if ( 0 !== strpos( $class, 'KY_' ) ) {
 			return;
 		}
 
-		$file = DSB_PATH . 'includes/class-' . strtolower( str_replace( '_', '-', $class ) ) . '.php';
+		$file = KY_PATH . 'includes/class-' . strtolower( str_replace( '_', '-', $class ) ) . '.php';
 
 		if ( is_readable( $file ) ) {
 			require_once $file;
@@ -132,16 +132,16 @@ final class DSB_Plugin {
 	 * @return void
 	 */
 	private function init_components() {
-		$this->settings     = new DSB_Settings();
-		$this->logger       = new DSB_Logger();
-		$this->destinations = new DSB_Destinations();
-		$this->rules        = new DSB_Rules();
-		$this->publisher    = new DSB_Publisher( $this->settings, $this->logger, $this->destinations );
-		$this->health       = new DSB_Health( $this->settings, $this->logger, $this->rules );
-		$this->scheduler    = new DSB_Scheduler( $this->settings, $this->rules, $this->publisher, $this->health );
+		$this->settings     = new KY_Settings();
+		$this->logger       = new KY_Logger();
+		$this->destinations = new KY_Destinations();
+		$this->rules        = new KY_Rules();
+		$this->publisher    = new KY_Publisher( $this->settings, $this->logger, $this->destinations );
+		$this->health       = new KY_Health( $this->settings, $this->logger, $this->rules );
+		$this->scheduler    = new KY_Scheduler( $this->settings, $this->rules, $this->publisher, $this->health );
 
 		if ( is_admin() ) {
-			$this->admin = new DSB_Admin(
+			$this->admin = new KY_Admin(
 				$this->settings,
 				$this->logger,
 				$this->destinations,
@@ -175,7 +175,7 @@ final class DSB_Plugin {
 	 * @return void
 	 */
 	public function load_textdomain() {
-		load_plugin_textdomain( 'daily-bale-post', false, dirname( DSB_BASENAME ) . '/languages' );
+		load_plugin_textdomain( 'kanalyar', false, dirname( KY_BASENAME ) . '/languages' );
 	}
 
 	/**
@@ -187,7 +187,7 @@ final class DSB_Plugin {
 		$plugin = self::instance();
 		$plugin->settings->install( $plugin->destinations, $plugin->rules );
 		$plugin->scheduler->reschedule();
-		update_option( self::VERSION_OPTION, DSB_VERSION, false );
+		update_option( self::VERSION_OPTION, KY_VERSION, false );
 	}
 
 	/**
@@ -207,7 +207,7 @@ final class DSB_Plugin {
 	public function maybe_upgrade() {
 		$installed = get_option( self::VERSION_OPTION, '0' );
 
-		if ( version_compare( $installed, DSB_VERSION, '>=' ) ) {
+		if ( version_compare( $installed, KY_VERSION, '>=' ) ) {
 			return;
 		}
 
@@ -217,6 +217,6 @@ final class DSB_Plugin {
 		$this->scheduler->drop_legacy_event();
 		$this->scheduler->reschedule();
 
-		update_option( self::VERSION_OPTION, DSB_VERSION, false );
+		update_option( self::VERSION_OPTION, KY_VERSION, false );
 	}
 }

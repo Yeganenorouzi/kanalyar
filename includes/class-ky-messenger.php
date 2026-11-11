@@ -2,7 +2,7 @@
 /**
  * پایه‌ی کلاینت پیام‌رسان‌ها.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * نشانی سرور است؛ پس منطق ارسال، تلاش مجدد و آپلود فایل اینجا
  * یک‌بار نوشته شده و کلاس‌های فرزند فقط نشانی و نام را می‌دهند.
  */
-abstract class DSB_Messenger {
+abstract class KY_Messenger {
 
 	/**
 	 * بیشینه‌ی طول متن پیام.
@@ -88,14 +88,14 @@ abstract class DSB_Messenger {
 	 * @param string $token    توکن.
 	 * @param string $chat_id  شناسه‌ی کانال.
 	 * @param int    $retries  تلاش مجدد.
-	 * @return DSB_Messenger
+	 * @return KY_Messenger
 	 */
 	public static function make( $platform, $token, $chat_id, $retries = 2 ) {
 		if ( 'telegram' === $platform ) {
-			return new DSB_Messenger_Telegram( $token, $chat_id, $retries );
+			return new KY_Messenger_Telegram( $token, $chat_id, $retries );
 		}
 
-		return new DSB_Messenger_Bale( $token, $chat_id, $retries );
+		return new KY_Messenger_Bale( $token, $chat_id, $retries );
 	}
 
 	/**
@@ -105,8 +105,8 @@ abstract class DSB_Messenger {
 	 */
 	public static function platforms() {
 		return array(
-			'bale'     => __( 'بله', 'daily-bale-post' ),
-			'telegram' => __( 'تلگرام', 'daily-bale-post' ),
+			'bale'     => __( 'بله', 'kanalyar' ),
+			'telegram' => __( 'تلگرام', 'kanalyar' ),
 		);
 	}
 
@@ -195,7 +195,7 @@ abstract class DSB_Messenger {
 		if ( ! $file_path || ! is_readable( $file_path ) ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'فایل تصویر روی سرور خوانده نشد.', 'daily-bale-post' ),
+				'error' => __( 'فایل تصویر روی سرور خوانده نشد.', 'kanalyar' ),
 			);
 		}
 
@@ -205,7 +205,7 @@ abstract class DSB_Messenger {
 		if ( false === $bits || '' === $bits ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'فایل تصویر خالی است.', 'daily-bale-post' ),
+				'error' => __( 'فایل تصویر خالی است.', 'kanalyar' ),
 			);
 		}
 
@@ -241,7 +241,7 @@ abstract class DSB_Messenger {
 		if ( ! $this->is_configured() ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'توکن یا آیدی کانال تنظیم نشده است.', 'daily-bale-post' ),
+				'error' => __( 'توکن یا آیدی کانال تنظیم نشده است.', 'kanalyar' ),
 			);
 		}
 
@@ -268,7 +268,7 @@ abstract class DSB_Messenger {
 		if ( ! $this->is_configured() ) {
 			return array(
 				'ok'    => false,
-				'error' => __( 'توکن یا آیدی کانال تنظیم نشده است.', 'daily-bale-post' ),
+				'error' => __( 'توکن یا آیدی کانال تنظیم نشده است.', 'kanalyar' ),
 			);
 		}
 
@@ -313,7 +313,7 @@ abstract class DSB_Messenger {
 		$attempts = $this->retries + 1;
 		$last     = array(
 			'ok'    => false,
-			'error' => __( 'پاسخی دریافت نشد.', 'daily-bale-post' ),
+			'error' => __( 'پاسخی دریافت نشد.', 'kanalyar' ),
 		);
 
 		for ( $attempt = 1; $attempt <= $attempts; $attempt++ ) {
@@ -392,6 +392,6 @@ abstract class DSB_Messenger {
 			return (string) $result['raw'];
 		}
 
-		return __( 'خطای نامشخص', 'daily-bale-post' );
+		return __( 'خطای نامشخص', 'kanalyar' );
 	}
 }

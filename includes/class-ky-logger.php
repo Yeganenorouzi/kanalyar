@@ -2,7 +2,7 @@
 /**
  * تاریخچه‌ی ارسال.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * نگه‌داری آخرین رویدادهای ارسال.
  */
-class DSB_Logger {
+class KY_Logger {
 
 	/**
 	 * نام آپشن تاریخچه.

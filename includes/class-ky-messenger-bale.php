@@ -2,7 +2,7 @@
 /**
  * کلاینت پیام‌رسان بله.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * بله.
  */
-class DSB_Messenger_Bale extends DSB_Messenger {
+class KY_Messenger_Bale extends KY_Messenger {
 
 	/**
 	 * ریشه‌ی API بله.
@@ -36,6 +36,6 @@ class DSB_Messenger_Bale extends DSB_Messenger {
 	 * @return string
 	 */
 	public function label() {
-		return __( 'بله', 'daily-bale-post' );
+		return __( 'بله', 'kanalyar' );
 	}
 }

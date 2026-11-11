@@ -2,7 +2,7 @@
 /**
  * مقصدهای ارسال (کانال‌های بله و تلگرام).
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * نگه‌داری فهرست کانال‌هایی که محتوا به آن‌ها می‌رود.
  */
-class DSB_Destinations {
+class KY_Destinations {
 
 	/**
 	 * نام آپشن.
@@ -128,10 +128,10 @@ class DSB_Destinations {
 	 *
 	 * @param array $destination مقصد.
 	 * @param int   $retries     تلاش مجدد.
-	 * @return DSB_Messenger
+	 * @return KY_Messenger
 	 */
 	public static function messenger( array $destination, $retries = 2 ) {
-		return DSB_Messenger::make(
+		return KY_Messenger::make(
 			$destination['platform'],
 			$destination['token'],
 			$destination['chat_id'],
@@ -146,7 +146,7 @@ class DSB_Destinations {
 	 * @return array[]
 	 */
 	public function sanitize( array $raw ) {
-		$platforms = DSB_Messenger::platforms();
+		$platforms = KY_Messenger::platforms();
 		$out       = array();
 		$seen      = array();
 

@@ -10,13 +10,13 @@
  *   ۲. مقادیر زیر را عوض کنید و فایل‌های logo.svg و icon.svg را
  *      کنار همین فایل بگذارید.
  *   ۳. فعالش کنید، یکی از این دو راه:
- *      - در wp-config.php:  define( 'DSB_BRANDING', 'my-agency' );
+ *      - در wp-config.php:  define( 'KY_BRANDING', 'my-agency' );
  *      - یا با `php build.php` بسته‌ی برنددار بسازید.
  *
  * پوشه‌های برندینگ (جز همین نمونه) در .gitignore هستند تا
  * برند خصوصی‌تان وارد مخزن عمومی نشود.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;

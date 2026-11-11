@@ -63,7 +63,7 @@
 > **توجه درباره‌ی تلگرام:** اگر سرور سایت در ایران باشد، معمولاً دسترسی مستقیم به `api.telegram.org` بسته است و ارسال با خطای شبکه شکست می‌خورد. در این حالت باید یک پراکسی سمت سرور داشته باشید و نشانی API را عوض کنید:
 >
 > ```php
-> add_filter( 'dsb_telegram_endpoint', function () {
+> add_filter( 'ky_telegram_endpoint', function () {
 >     return 'https://your-proxy.example/bot';
 > } );
 > ```
@@ -162,7 +162,7 @@ define('DISABLE_WP_CRON', true);
 | `Forbidden` / `bot was blocked` | بات ادمین کانال نیست یا دسترسی ارسال ندارد. |
 | `unauthorized` | توکن اشتباه است. با دکمه‌ی «تست اتصال» بررسی کنید. |
 | `failed to get HTTP URL content` | سرور پیام‌رسان نتوانست تصویر را از سایت بگیرد. در حالت «خودکار» خودش آپلود مستقیم را امتحان می‌کند؛ اگر تکرار شد، حالت تصویر را روی «همیشه آپلود مستقیم» بگذارید. |
-| خطای شبکه روی تلگرام | سرور ایران به تلگرام دسترسی ندارد. فیلتر `dsb_telegram_endpoint` را با پراکسی تنظیم کنید. |
+| خطای شبکه روی تلگرام | سرور ایران به تلگرام دسترسی ندارد. فیلتر `ky_telegram_endpoint` را با پراکسی تنظیم کنید. |
 | `همه‌ی مطالب این قانون قبلاً ارسال شده‌اند` | راهبرد ترتیبی به انتهای محتوا رسیده. محتوای تازه منتشر کنید یا «شروع دوباره» را بزنید. |
 | `هیچ مطلبی با این فیلترها پیدا نشد` | فیلتر دسته‌بندی یا موجودی خیلی محدود است. |
 | کارت سلامت قرمز ولی خطایی در تاریخچه نیست | چرخه‌ی بررسی اجرا نشده؛ «بازسازی زمان‌بندی» را بزنید و cron سرور را تنظیم کنید. |
@@ -177,21 +177,21 @@ daily-bale-post/
 ├── uninstall.php                        پاک‌سازی هنگام حذف
 ├── build.php                            ساخت بسته‌های نصب
 ├── includes/
-│   ├── class-dsb-plugin.php             هسته، اتولودر، نصب و مهاجرت
-│   ├── class-dsb-settings.php           تنظیمات کلی و مهاجرت
-│   ├── class-dsb-destinations.php       کانال‌های مقصد
-│   ├── class-dsb-rules.php              قوانین انتشار
-│   ├── class-dsb-content-selector.php   انتخاب محتوا بر اساس راهبرد
-│   ├── class-dsb-message.php            ساخت متن و دکمه‌ها
-│   ├── class-dsb-messenger.php          پایه‌ی مشترک پیام‌رسان‌ها
-│   ├── class-dsb-messenger-bale.php     بله
-│   ├── class-dsb-messenger-telegram.php تلگرام
-│   ├── class-dsb-publisher.php          اجرای یک قانون روی مقصدها
-│   ├── class-dsb-scheduler.php          زمان‌بندی مقاوم، قفل، تلاش مجدد
-│   ├── class-dsb-logger.php             تاریخچه
-│   ├── class-dsb-health.php             پایش سلامت و هشدار
-│   ├── class-dsb-branding.php           برندینگ اختیاری
-│   ├── class-dsb-admin.php              منو، تب‌ها و پردازش فرم
+│   ├── class-ky-plugin.php             هسته، اتولودر، نصب و مهاجرت
+│   ├── class-ky-settings.php           تنظیمات کلی و مهاجرت
+│   ├── class-ky-destinations.php       کانال‌های مقصد
+│   ├── class-ky-rules.php              قوانین انتشار
+│   ├── class-ky-content-selector.php   انتخاب محتوا بر اساس راهبرد
+│   ├── class-ky-message.php            ساخت متن و دکمه‌ها
+│   ├── class-ky-messenger.php          پایه‌ی مشترک پیام‌رسان‌ها
+│   ├── class-ky-messenger-bale.php     بله
+│   ├── class-ky-messenger-telegram.php تلگرام
+│   ├── class-ky-publisher.php          اجرای یک قانون روی مقصدها
+│   ├── class-ky-scheduler.php          زمان‌بندی مقاوم، قفل، تلاش مجدد
+│   ├── class-ky-logger.php             تاریخچه
+│   ├── class-ky-health.php             پایش سلامت و هشدار
+│   ├── class-ky-branding.php           برندینگ اختیاری
+│   ├── class-ky-admin.php              منو، تب‌ها و پردازش فرم
 │   └── views/                           نماهای پنل
 ├── branding/                            پروفایل‌های برندینگ (اختیاری)
 ├── assets/                              استایل و اسکریپت پنل
@@ -204,16 +204,16 @@ daily-bale-post/
 
 ```php
 // تغییر نشانی API تلگرام (پراکسی)
-add_filter( 'dsb_telegram_endpoint', fn() => 'https://proxy.example/bot' );
+add_filter( 'ky_telegram_endpoint', fn() => 'https://proxy.example/bot' );
 
 // محدودکردن نوع‌های محتوای قابل انتشار
-add_filter( 'dsb_available_post_types', function ( $types ) {
+add_filter( 'ky_available_post_types', function ( $types ) {
     unset( $types['page'] );
     return $types;
 } );
 
 // برندینگ از طریق کد
-add_filter( 'dsb_branding', fn() => array(
+add_filter( 'ky_branding', fn() => array(
     'name' => 'برند من',
     'site' => 'https://example.com/',
 ) );
@@ -246,10 +246,10 @@ branding/
 
 ```php
 // ۱. از طریق کد (بالاترین اولویت)
-add_filter( 'dsb_branding', fn() => array( 'name' => 'برند من' ) );
+add_filter( 'ky_branding', fn() => array( 'name' => 'برند من' ) );
 
 // ۲. در wp-config.php
-define( 'DSB_BRANDING', 'my-agency' );
+define( 'KY_BRANDING', 'my-agency' );
 
 // ۳. یا بسته‌ی برنددار را با build.php بسازید
 ```

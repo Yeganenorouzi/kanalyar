@@ -2,7 +2,7 @@
 /**
  * کلاینت پیام‌رسان تلگرام.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -14,12 +14,12 @@ defined( 'ABSPATH' ) || exit;
  * api.telegram.org بسته است. در این حالت خطای «قطعی شبکه» در
  * تاریخچه ثبت می‌شود و باید پراکسی سمت سرور تنظیم شود.
  */
-class DSB_Messenger_Telegram extends DSB_Messenger {
+class KY_Messenger_Telegram extends KY_Messenger {
 
 	/**
 	 * ریشه‌ی API تلگرام.
 	 *
-	 * با فیلتر dsb_telegram_endpoint می‌توان آن را به یک پراکسی تغییر داد.
+	 * با فیلتر ky_telegram_endpoint می‌توان آن را به یک پراکسی تغییر داد.
 	 *
 	 * @return string
 	 */
@@ -29,7 +29,10 @@ class DSB_Messenger_Telegram extends DSB_Messenger {
 		 *
 		 * @param string $endpoint نشانی پیش‌فرض.
 		 */
-		return (string) apply_filters( 'dsb_telegram_endpoint', 'https://api.telegram.org/bot' );
+		$endpoint = apply_filters( 'ky_telegram_endpoint', 'https://api.telegram.org/bot' );
+
+		// نام فیلتر در نسخه‌های پیش از ۶.
+		return (string) apply_filters( 'dsb_telegram_endpoint', $endpoint );
 	}
 
 	/**
@@ -47,6 +50,6 @@ class DSB_Messenger_Telegram extends DSB_Messenger {
 	 * @return string
 	 */
 	public function label() {
-		return __( 'تلگرام', 'daily-bale-post' );
+		return __( 'تلگرام', 'kanalyar' );
 	}
 }

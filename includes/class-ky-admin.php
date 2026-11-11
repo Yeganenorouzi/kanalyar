@@ -2,7 +2,7 @@
 /**
  * صفحه‌ی مدیریت افزونه.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,91 +10,91 @@ defined( 'ABSPATH' ) || exit;
 /**
  * منو، تب‌ها، فرم‌ها و تاریخچه.
  */
-class DSB_Admin {
+class KY_Admin {
 
 	/**
 	 * شناسه‌ی صفحه.
 	 */
-	const SLUG = 'dsb-settings';
+	const SLUG = 'kanalyar';
 
 	/**
 	 * اکشن نانس.
 	 */
-	const NONCE = 'dsb_admin_action';
+	const NONCE = 'ky_admin_action';
 
 	/**
 	 * نام اطلاعیه‌ی موقت.
 	 */
-	const NOTICE_TRANSIENT = 'dsb_notice_';
+	const NOTICE_TRANSIENT = 'ky_notice_';
 
 	/**
 	 * تنظیمات.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	private $settings;
 
 	/**
 	 * تاریخچه.
 	 *
-	 * @var DSB_Logger
+	 * @var KY_Logger
 	 */
 	private $logger;
 
 	/**
 	 * مقصدها.
 	 *
-	 * @var DSB_Destinations
+	 * @var KY_Destinations
 	 */
 	private $destinations;
 
 	/**
 	 * قوانین.
 	 *
-	 * @var DSB_Rules
+	 * @var KY_Rules
 	 */
 	private $rules;
 
 	/**
 	 * انتشاردهنده.
 	 *
-	 * @var DSB_Publisher
+	 * @var KY_Publisher
 	 */
 	private $publisher;
 
 	/**
 	 * زمان‌بند.
 	 *
-	 * @var DSB_Scheduler
+	 * @var KY_Scheduler
 	 */
 	private $scheduler;
 
 	/**
 	 * پایش سلامت.
 	 *
-	 * @var DSB_Health
+	 * @var KY_Health
 	 */
 	private $health;
 
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings     $settings     تنظیمات.
-	 * @param DSB_Logger       $logger       تاریخچه.
-	 * @param DSB_Destinations $destinations مقصدها.
-	 * @param DSB_Rules        $rules        قوانین.
-	 * @param DSB_Publisher    $publisher    انتشاردهنده.
-	 * @param DSB_Scheduler    $scheduler    زمان‌بند.
-	 * @param DSB_Health       $health       پایش سلامت.
+	 * @param KY_Settings     $settings     تنظیمات.
+	 * @param KY_Logger       $logger       تاریخچه.
+	 * @param KY_Destinations $destinations مقصدها.
+	 * @param KY_Rules        $rules        قوانین.
+	 * @param KY_Publisher    $publisher    انتشاردهنده.
+	 * @param KY_Scheduler    $scheduler    زمان‌بند.
+	 * @param KY_Health       $health       پایش سلامت.
 	 */
 	public function __construct(
-		DSB_Settings $settings,
-		DSB_Logger $logger,
-		DSB_Destinations $destinations,
-		DSB_Rules $rules,
-		DSB_Publisher $publisher,
-		DSB_Scheduler $scheduler,
-		DSB_Health $health
+		KY_Settings $settings,
+		KY_Logger $logger,
+		KY_Destinations $destinations,
+		KY_Rules $rules,
+		KY_Publisher $publisher,
+		KY_Scheduler $scheduler,
+		KY_Health $health
 	) {
 		$this->settings     = $settings;
 		$this->logger       = $logger;
@@ -113,8 +113,8 @@ class DSB_Admin {
 	public function register_hooks() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
-		add_action( 'admin_post_dsb_handle', array( $this, 'handle_post' ) );
-		add_filter( 'plugin_action_links_' . DSB_BASENAME, array( $this, 'action_links' ) );
+		add_action( 'admin_post_ky_handle', array( $this, 'handle_post' ) );
+		add_filter( 'plugin_action_links_' . KY_BASENAME, array( $this, 'action_links' ) );
 	}
 
 	/**
@@ -124,10 +124,10 @@ class DSB_Admin {
 	 */
 	public static function tabs() {
 		return array(
-			'rules'        => __( 'قوانین انتشار', 'daily-bale-post' ),
-			'destinations' => __( 'مقصدها', 'daily-bale-post' ),
-			'settings'     => __( 'تنظیمات', 'daily-bale-post' ),
-			'log'          => __( 'تاریخچه', 'daily-bale-post' ),
+			'rules'        => __( 'قوانین انتشار', 'kanalyar' ),
+			'destinations' => __( 'مقصدها', 'kanalyar' ),
+			'settings'     => __( 'تنظیمات', 'kanalyar' ),
+			'log'          => __( 'تاریخچه', 'kanalyar' ),
 		);
 	}
 
@@ -159,10 +159,10 @@ class DSB_Admin {
 	 * @return void
 	 */
 	public function add_menu() {
-		$title = __( 'انتشار خودکار', 'daily-bale-post' );
+		$title = __( 'انتشار خودکار', 'kanalyar' );
 
 		add_menu_page(
-			DSB_Branding::is_enabled() ? $title . ' | ' . DSB_Branding::get( 'name' ) : $title,
+			KY_Branding::is_enabled() ? $title . ' | ' . KY_Branding::get( 'name' ) : $title,
 			$title,
 			'manage_options',
 			self::SLUG,
@@ -181,7 +181,7 @@ class DSB_Admin {
 	public function action_links( $links ) {
 		array_unshift(
 			$links,
-			'<a href="' . esc_url( $this->tab_url( 'rules' ) ) . '">' . esc_html__( 'تنظیمات', 'daily-bale-post' ) . '</a>'
+			'<a href="' . esc_url( $this->tab_url( 'rules' ) ) . '">' . esc_html__( 'تنظیمات', 'kanalyar' ) . '</a>'
 		);
 
 		return $links;
@@ -199,14 +199,14 @@ class DSB_Admin {
 		}
 
 		wp_enqueue_style(
-			'dsb-vazirmatn',
+			'ky-vazirmatn',
 			'https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css',
 			array(),
 			null // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 		);
 
-		wp_enqueue_style( 'dsb-admin', DSB_URL . 'assets/admin.css', array( 'dsb-vazirmatn' ), DSB_VERSION );
-		wp_enqueue_script( 'dsb-admin', DSB_URL . 'assets/admin.js', array(), DSB_VERSION, true );
+		wp_enqueue_style( 'ky-admin', KY_URL . 'assets/admin.css', array( 'ky-vazirmatn' ), KY_VERSION );
+		wp_enqueue_script( 'ky-admin', KY_URL . 'assets/admin.js', array(), KY_VERSION, true );
 	}
 
 	/**
@@ -215,7 +215,7 @@ class DSB_Admin {
 	 * @return string
 	 */
 	private function menu_icon() {
-		$icon = DSB_Branding::menu_icon();
+		$icon = KY_Branding::menu_icon();
 
 		return $icon ? $icon : 'dashicons-share';
 	}
@@ -227,16 +227,16 @@ class DSB_Admin {
 	 */
 	public function handle_post() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'دسترسی لازم را ندارید.', 'daily-bale-post' ) );
+			wp_die( esc_html__( 'دسترسی لازم را ندارید.', 'kanalyar' ) );
 		}
 
 		check_admin_referer( self::NONCE );
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- نانس بالا بررسی شد.
-		$action = isset( $_POST['dsb_action'] ) ? sanitize_key( wp_unslash( $_POST['dsb_action'] ) ) : '';
-		$tab    = isset( $_POST['dsb_tab'] ) ? sanitize_key( wp_unslash( $_POST['dsb_tab'] ) ) : 'rules';
-		$target = isset( $_POST['dsb_target'] ) ? sanitize_key( wp_unslash( $_POST['dsb_target'] ) ) : '';
-		$raw    = isset( $_POST['dsb'] ) ? wp_unslash( $_POST['dsb'] ) : array();
+		$action = isset( $_POST['ky_action'] ) ? sanitize_key( wp_unslash( $_POST['ky_action'] ) ) : '';
+		$tab    = isset( $_POST['ky_tab'] ) ? sanitize_key( wp_unslash( $_POST['ky_tab'] ) ) : 'rules';
+		$target = isset( $_POST['ky_target'] ) ? sanitize_key( wp_unslash( $_POST['ky_target'] ) ) : '';
+		$raw    = isset( $_POST['ky'] ) ? wp_unslash( $_POST['ky'] ) : array();
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		switch ( $action ) {
@@ -270,7 +270,7 @@ class DSB_Admin {
 
 			case 'clear_log':
 				$this->logger->clear();
-				$this->notice( 'success', __( 'تاریخچه پاک شد', 'daily-bale-post' ), __( 'همه‌ی ردیف‌های تاریخچه حذف شدند.', 'daily-bale-post' ) );
+				$this->notice( 'success', __( 'تاریخچه پاک شد', 'kanalyar' ), __( 'همه‌ی ردیف‌های تاریخچه حذف شدند.', 'kanalyar' ) );
 				break;
 		}
 
@@ -301,10 +301,10 @@ class DSB_Admin {
 
 		$this->notice(
 			'success',
-			__( 'قوانین ذخیره شد', 'daily-bale-post' ),
+			__( 'قوانین ذخیره شد', 'kanalyar' ),
 			sprintf(
 				/* translators: %d: تعداد قانون. */
-				_n( '%d قانون انتشار ذخیره شد.', '%d قانون انتشار ذخیره شد.', count( $clean ), 'daily-bale-post' ),
+				_n( '%d قانون انتشار ذخیره شد.', '%d قانون انتشار ذخیره شد.', count( $clean ), 'kanalyar' ),
 				count( $clean )
 			)
 		);
@@ -322,10 +322,10 @@ class DSB_Admin {
 
 		$this->notice(
 			'success',
-			__( 'مقصدها ذخیره شد', 'daily-bale-post' ),
+			__( 'مقصدها ذخیره شد', 'kanalyar' ),
 			sprintf(
 				/* translators: %d: تعداد مقصد. */
-				_n( '%d مقصد ذخیره شد.', '%d مقصد ذخیره شد.', count( $clean ), 'daily-bale-post' ),
+				_n( '%d مقصد ذخیره شد.', '%d مقصد ذخیره شد.', count( $clean ), 'kanalyar' ),
 				count( $clean )
 			)
 		);
@@ -343,8 +343,8 @@ class DSB_Admin {
 
 		$this->notice(
 			'success',
-			__( 'تنظیمات ذخیره شد', 'daily-bale-post' ),
-			__( 'تنظیمات کلی ذخیره شد و زمان‌بندی به‌روز شد.', 'daily-bale-post' )
+			__( 'تنظیمات ذخیره شد', 'kanalyar' ),
+			__( 'تنظیمات کلی ذخیره شد و زمان‌بندی به‌روز شد.', 'kanalyar' )
 		);
 	}
 
@@ -358,7 +358,7 @@ class DSB_Admin {
 		$rule = $this->rules->get( $rule_id );
 
 		if ( ! $rule ) {
-			$this->notice( 'error', __( 'قانون پیدا نشد', 'daily-bale-post' ), __( 'ابتدا قانون را ذخیره کنید.', 'daily-bale-post' ) );
+			$this->notice( 'error', __( 'قانون پیدا نشد', 'kanalyar' ), __( 'ابتدا قانون را ذخیره کنید.', 'kanalyar' ) );
 			return;
 		}
 
@@ -367,10 +367,10 @@ class DSB_Admin {
 		if ( ! empty( $result['ok'] ) ) {
 			$this->notice(
 				'success',
-				__( 'ارسال موفق', 'daily-bale-post' ),
+				__( 'ارسال موفق', 'kanalyar' ),
 				sprintf(
 					/* translators: ۱: عنوان مطلب، ۲: خلاصه‌ی مقصدها. */
-					__( '«%1$s» — %2$s', 'daily-bale-post' ),
+					__( '«%1$s» — %2$s', 'kanalyar' ),
 					$result['title'],
 					$result['message']
 				),
@@ -381,7 +381,7 @@ class DSB_Admin {
 
 		$this->notice(
 			'error',
-			__( 'ارسال ناموفق', 'daily-bale-post' ),
+			__( 'ارسال ناموفق', 'kanalyar' ),
 			$result['message'],
 			$this->format_results( $result['results'] )
 		);
@@ -397,11 +397,11 @@ class DSB_Admin {
 		$destination = $this->destinations->get( $destination_id );
 
 		if ( ! $destination ) {
-			$this->notice( 'error', __( 'مقصد پیدا نشد', 'daily-bale-post' ), __( 'ابتدا مقصد را ذخیره کنید.', 'daily-bale-post' ) );
+			$this->notice( 'error', __( 'مقصد پیدا نشد', 'kanalyar' ), __( 'ابتدا مقصد را ذخیره کنید.', 'kanalyar' ) );
 			return;
 		}
 
-		$messenger = DSB_Destinations::messenger( $destination, 0 );
+		$messenger = KY_Destinations::messenger( $destination, 0 );
 		$result    = $messenger->check();
 
 		if ( ! empty( $result['ok'] ) ) {
@@ -409,12 +409,12 @@ class DSB_Admin {
 
 			$this->notice(
 				'success',
-				__( 'اتصال برقرار است', 'daily-bale-post' ),
+				__( 'اتصال برقرار است', 'kanalyar' ),
 				sprintf(
 					/* translators: ۱: نام مقصد، ۲: نام بات. */
-					__( 'توکن «%1$s» معتبر است. بات: %2$s', 'daily-bale-post' ),
+					__( 'توکن «%1$s» معتبر است. بات: %2$s', 'kanalyar' ),
 					$destination['label'],
-					$name ? '@' . $name : __( 'نامشخص', 'daily-bale-post' )
+					$name ? '@' . $name : __( 'نامشخص', 'kanalyar' )
 				)
 			);
 			return;
@@ -422,8 +422,8 @@ class DSB_Admin {
 
 		$this->notice(
 			'error',
-			__( 'اتصال برقرار نشد', 'daily-bale-post' ),
-			DSB_Messenger::error_message( $result ),
+			__( 'اتصال برقرار نشد', 'kanalyar' ),
+			KY_Messenger::error_message( $result ),
 			wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
 		);
 	}
@@ -446,10 +446,10 @@ class DSB_Admin {
 
 		$this->notice(
 			'success',
-			__( 'تاریخچه‌ی قانون پاک شد', 'daily-bale-post' ),
+			__( 'تاریخچه‌ی قانون پاک شد', 'kanalyar' ),
 			sprintf(
 				/* translators: %s: نام قانون. */
-				__( 'قانون «%s» دوباره از ابتدا شروع می‌کند و همه‌ی مطالب دوباره واجد شرایط‌اند.', 'daily-bale-post' ),
+				__( 'قانون «%s» دوباره از ابتدا شروع می‌کند و همه‌ی مطالب دوباره واجد شرایط‌اند.', 'kanalyar' ),
 				$rule['label']
 			)
 		);
@@ -466,8 +466,8 @@ class DSB_Admin {
 
 		$this->notice(
 			'success',
-			__( 'زمان‌بندی بازسازی شد', 'daily-bale-post' ),
-			__( 'رویداد زمان‌بندی از نو ثبت شد. اگر باز هم اجرا نشد، cron سمت سرور را فعال کنید.', 'daily-bale-post' )
+			__( 'زمان‌بندی بازسازی شد', 'kanalyar' ),
+			__( 'رویداد زمان‌بندی از نو ثبت شد. اگر باز هم اجرا نشد، cron سمت سرور را فعال کنید.', 'kanalyar' )
 		);
 	}
 
@@ -562,7 +562,7 @@ class DSB_Admin {
 		$report = $this->health->report( $this->scheduler );
 		$tab    = $this->current_tab();
 
-		include DSB_PATH . 'includes/views/page.php';
+		include KY_PATH . 'includes/views/page.php';
 	}
 
 	/**
@@ -591,7 +591,7 @@ class DSB_Admin {
 	public function destinations_list() {
 		$rows = $this->destinations->all();
 
-		return $rows ? $rows : array( DSB_Destinations::blank() );
+		return $rows ? $rows : array( KY_Destinations::blank() );
 	}
 
 	/**
@@ -602,7 +602,7 @@ class DSB_Admin {
 	public function rules_list() {
 		$rows = $this->rules->all();
 
-		return $rows ? $rows : array( DSB_Rules::blank() );
+		return $rows ? $rows : array( KY_Rules::blank() );
 	}
 
 	/**
@@ -639,13 +639,13 @@ class DSB_Admin {
 	 */
 	public static function weekdays() {
 		return array(
-			6 => __( 'شنبه', 'daily-bale-post' ),
-			0 => __( 'یکشنبه', 'daily-bale-post' ),
-			1 => __( 'دوشنبه', 'daily-bale-post' ),
-			2 => __( 'سه‌شنبه', 'daily-bale-post' ),
-			3 => __( 'چهارشنبه', 'daily-bale-post' ),
-			4 => __( 'پنجشنبه', 'daily-bale-post' ),
-			5 => __( 'جمعه', 'daily-bale-post' ),
+			6 => __( 'شنبه', 'kanalyar' ),
+			0 => __( 'یکشنبه', 'kanalyar' ),
+			1 => __( 'دوشنبه', 'kanalyar' ),
+			2 => __( 'سه‌شنبه', 'kanalyar' ),
+			3 => __( 'چهارشنبه', 'kanalyar' ),
+			4 => __( 'پنجشنبه', 'kanalyar' ),
+			5 => __( 'جمعه', 'kanalyar' ),
 		);
 	}
 }

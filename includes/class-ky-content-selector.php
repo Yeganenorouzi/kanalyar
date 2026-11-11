@@ -2,7 +2,7 @@
 /**
  * انتخاب محتوا برای انتشار.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * انتخاب یک مطلب (محصول، نوشته، برگه یا هر نوع محتوای دیگر)
  * بر اساس فیلترها و راهبرد یک قانون.
  */
-class DSB_Content_Selector {
+class KY_Content_Selector {
 
 	/**
 	 * پیشوند آپشن فهرست ارسال‌شده‌های هر قانون.
@@ -34,7 +34,7 @@ class DSB_Content_Selector {
 
 		if ( ! $post ) {
 			return new WP_Error(
-				'dsb_no_content',
+				'ky_no_content',
 				$this->empty_message( $rule )
 			);
 		}
@@ -50,10 +50,10 @@ class DSB_Content_Selector {
 	 */
 	private function empty_message( array $rule ) {
 		if ( 'random' !== $rule['strategy'] ) {
-			return __( 'همه‌ی مطالب این قانون قبلاً ارسال شده‌اند.', 'daily-bale-post' );
+			return __( 'همه‌ی مطالب این قانون قبلاً ارسال شده‌اند.', 'kanalyar' );
 		}
 
-		return __( 'هیچ مطلبی با این فیلترها پیدا نشد.', 'daily-bale-post' );
+		return __( 'هیچ مطلبی با این فیلترها پیدا نشد.', 'kanalyar' );
 	}
 
 	/**

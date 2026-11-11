@@ -2,7 +2,7 @@
 /**
  * اجرای یک قانون انتشار.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,56 +10,56 @@ defined( 'ABSPATH' ) || exit;
 /**
  * انتخاب محتوا، ساخت پیام و ارسال به همه‌ی مقصدهای یک قانون.
  */
-class DSB_Publisher {
+class KY_Publisher {
 
 	/**
 	 * تنظیمات سراسری.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	private $settings;
 
 	/**
 	 * تاریخچه.
 	 *
-	 * @var DSB_Logger
+	 * @var KY_Logger
 	 */
 	private $logger;
 
 	/**
 	 * مقصدها.
 	 *
-	 * @var DSB_Destinations
+	 * @var KY_Destinations
 	 */
 	private $destinations;
 
 	/**
 	 * انتخاب‌گر محتوا.
 	 *
-	 * @var DSB_Content_Selector
+	 * @var KY_Content_Selector
 	 */
 	private $selector;
 
 	/**
 	 * سازنده‌ی پیام.
 	 *
-	 * @var DSB_Message
+	 * @var KY_Message
 	 */
 	private $message;
 
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings     $settings     تنظیمات.
-	 * @param DSB_Logger       $logger       تاریخچه.
-	 * @param DSB_Destinations $destinations مقصدها.
+	 * @param KY_Settings     $settings     تنظیمات.
+	 * @param KY_Logger       $logger       تاریخچه.
+	 * @param KY_Destinations $destinations مقصدها.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Logger $logger, DSB_Destinations $destinations ) {
+	public function __construct( KY_Settings $settings, KY_Logger $logger, KY_Destinations $destinations ) {
 		$this->settings     = $settings;
 		$this->logger       = $logger;
 		$this->destinations = $destinations;
-		$this->selector     = new DSB_Content_Selector();
-		$this->message      = new DSB_Message( $settings );
+		$this->selector     = new KY_Content_Selector();
+		$this->message      = new KY_Message( $settings );
 	}
 
 	/**
@@ -79,7 +79,7 @@ class DSB_Publisher {
 			return $this->fail(
 				$rule,
 				'—',
-				__( 'هیچ مقصد فعالی برای این قانون تنظیم نشده است.', 'daily-bale-post' ),
+				__( 'هیچ مقصد فعالی برای این قانون تنظیم نشده است.', 'kanalyar' ),
 				$source
 			);
 		}
@@ -106,14 +106,14 @@ class DSB_Publisher {
 				'destination' => $destination['label'],
 				'platform'    => $destination['platform'],
 				'ok'          => $ok,
-				'message'     => $ok ? __( 'ارسال شد', 'daily-bale-post' ) : DSB_Messenger::error_message( $result ),
+				'message'     => $ok ? __( 'ارسال شد', 'kanalyar' ) : KY_Messenger::error_message( $result ),
 				'raw'         => $result,
 			);
 
 			$this->logger->add(
-				$ok ? DSB_Logger::STATE_OK : DSB_Logger::STATE_FAIL,
+				$ok ? KY_Logger::STATE_OK : KY_Logger::STATE_FAIL,
 				$parts['title'],
-				$ok ? __( 'ارسال شد', 'daily-bale-post' ) : DSB_Messenger::error_message( $result ),
+				$ok ? __( 'ارسال شد', 'kanalyar' ) : KY_Messenger::error_message( $result ),
 				$source,
 				$rule['label'],
 				$destination['label']
@@ -137,10 +137,10 @@ class DSB_Publisher {
 	 *
 	 * @param array $destination مقصد.
 	 * @param int   $retries     تلاش مجدد.
-	 * @return DSB_Messenger
+	 * @return KY_Messenger
 	 */
 	protected function messenger( array $destination, $retries ) {
-		return DSB_Destinations::messenger( $destination, $retries );
+		return KY_Destinations::messenger( $destination, $retries );
 	}
 
 	/**
@@ -162,16 +162,16 @@ class DSB_Publisher {
 
 		if ( $ok === $total ) {
 			/* translators: %d: تعداد مقصد. */
-			return sprintf( _n( 'به %d مقصد ارسال شد', 'به %d مقصد ارسال شد', $total, 'daily-bale-post' ), $total );
+			return sprintf( _n( 'به %d مقصد ارسال شد', 'به %d مقصد ارسال شد', $total, 'kanalyar' ), $total );
 		}
 
 		if ( 0 === $ok ) {
-			return __( 'ارسال به هیچ مقصدی موفق نبود.', 'daily-bale-post' );
+			return __( 'ارسال به هیچ مقصدی موفق نبود.', 'kanalyar' );
 		}
 
 		return sprintf(
 			/* translators: ۱: تعداد موفق، ۲: تعداد کل. */
-			__( 'به %1$d مقصد از %2$d مقصد ارسال شد.', 'daily-bale-post' ),
+			__( 'به %1$d مقصد از %2$d مقصد ارسال شد.', 'kanalyar' ),
 			$ok,
 			$total
 		);
@@ -183,12 +183,12 @@ class DSB_Publisher {
 	 * ترتیب در حالت خودکار: لینک تصویر ← آپلود مستقیم فایل ← فقط متن.
 	 * این زنجیره خطای «failed to get HTTP URL content» را خنثی می‌کند.
 	 *
-	 * @param DSB_Messenger $api   کلاینت.
+	 * @param KY_Messenger $api   کلاینت.
 	 * @param array         $parts اجزای پیام.
 	 * @param array         $rule  قانون.
 	 * @return array
 	 */
-	private function send( DSB_Messenger $api, array $parts, array $rule ) {
+	private function send( KY_Messenger $api, array $parts, array $rule ) {
 		$mode   = (string) $rule['photo_mode'];
 		$markup = $parts['reply_markup'];
 		$text   = $parts['text'];
@@ -233,7 +233,7 @@ class DSB_Publisher {
 	 * @return array
 	 */
 	private function fail( array $rule, $title, $message, $source ) {
-		$this->logger->add( DSB_Logger::STATE_FAIL, $title, $message, $source, $rule['label'], '—' );
+		$this->logger->add( KY_Logger::STATE_FAIL, $title, $message, $source, $rule['label'], '—' );
 
 		return array(
 			'ok'      => false,
@@ -246,7 +246,7 @@ class DSB_Publisher {
 	/**
 	 * دسترسی به انتخاب‌گر محتوا.
 	 *
-	 * @return DSB_Content_Selector
+	 * @return KY_Content_Selector
 	 */
 	public function selector() {
 		return $this->selector;

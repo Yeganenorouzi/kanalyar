@@ -7,7 +7,7 @@
  *
  * اجرا:  php build.php
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 if ( PHP_SAPI !== 'cli' ) {
@@ -15,11 +15,15 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 
 $root = __DIR__;
-$slug = basename( $root );
 $dist = $root . '/dist';
 
+// نام پوشه‌ی افزونه در بسته. عمداً به نام پوشه‌ی کاری وابسته نیست،
+// تا نام دلخواه توسعه‌دهنده روی خروجی اثر نگذارد.
+$slug = 'kanalyar';
+$main = $slug . '.php';
+
 // ── نسخه را از هدر افزونه بخوان ───────────────────────
-$header = file_get_contents( $root . '/' . 'daily-bale-post.php' );
+$header = file_get_contents( $root . '/' . $main );
 
 if ( ! preg_match( '/^\s*\*\s*Version:\s*(.+)$/mi', $header, $m ) ) {
 	fwrite( STDERR, "نسخه در هدر افزونه پیدا نشد.\n" );
@@ -42,7 +46,7 @@ $skip_ext   = array( 'zip', 'bak', 'log', 'tmp' );
  * @param array  $skip_ext پسوندهای نادیده.
  * @return array مسیرهای نسبی.
  */
-function dsb_collect( $root, $skip_dirs, $skip_files, $skip_ext ) {
+function ky_collect( $root, $skip_dirs, $skip_files, $skip_ext ) {
 	$out = array();
 
 	$it = new RecursiveIteratorIterator(
@@ -87,7 +91,7 @@ function dsb_collect( $root, $skip_dirs, $skip_files, $skip_ext ) {
  * @param string $active  نام پروفایل برندینگ فعال، یا رشته‌ی خالی.
  * @return int تعداد فایل‌ها.
  */
-function dsb_zip( $target, $root, $slug, array $files, $active ) {
+function ky_zip( $target, $root, $slug, array $files, $active ) {
 	$zip = new ZipArchive();
 
 	if ( true !== $zip->open( $target, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
@@ -119,7 +123,7 @@ if ( ! is_dir( $dist ) ) {
 	mkdir( $dist, 0777, true );
 }
 
-$all = dsb_collect( $root, $skip_dirs, $skip_files, $skip_ext );
+$all = ky_collect( $root, $skip_dirs, $skip_files, $skip_ext );
 
 // بسته‌ی تمیز: پوشه‌ی branding اصلاً وارد نمی‌شود.
 $clean = array_values(
@@ -134,7 +138,7 @@ $clean = array_values(
 echo "نسخه: $version\n\n";
 
 $target = "$dist/$slug-$version.zip";
-$n      = dsb_zip( $target, $root, $slug, $clean, '' );
+$n      = ky_zip( $target, $root, $slug, $clean, '' );
 printf( "  ✓ %-44s %3d فایل  (تمیز)\n", basename( $target ), $n );
 
 // یک بسته به‌ازای هر پروفایل برندینگ.
@@ -159,7 +163,7 @@ foreach ( $profiles as $profile ) {
 	);
 
 	$target = "$dist/$slug-$version-$name.zip";
-	$n      = dsb_zip( $target, $root, $slug, $files, $name );
+	$n      = ky_zip( $target, $root, $slug, $files, $name );
 	printf( "  ✓ %-44s %3d فایل  (برند: %s)\n", basename( $target ), $n, $name );
 }
 

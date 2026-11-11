@@ -2,7 +2,7 @@
 /**
  * ساخت متن و دکمه‌های پست.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -13,21 +13,21 @@ defined( 'ABSPATH' ) || exit;
  * برای محصولات ووکامرس قیمت و تخفیف هم اضافه می‌شود؛
  * برای بقیه‌ی نوع‌های محتوا خلاصه‌ی مطلب می‌آید.
  */
-class DSB_Message {
+class KY_Message {
 
 	/**
 	 * تنظیمات سراسری.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	private $settings;
 
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings $settings تنظیمات.
+	 * @param KY_Settings $settings تنظیمات.
 	 */
-	public function __construct( DSB_Settings $settings ) {
+	public function __construct( KY_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
@@ -199,7 +199,7 @@ class DSB_Message {
 
 		// نشانی مشکل‌دار: پرانتزِ لینک مارک‌داون محتوایش را تفسیر نمی‌کند.
 		if ( false === strpos( $url, '(' ) && false === strpos( $url, ')' ) ) {
-			return '🔗 [' . __( 'مشاهده در سایت', 'daily-bale-post' ) . '](' . $url . ')';
+			return '🔗 [' . __( 'مشاهده در سایت', 'kanalyar' ) . '](' . $url . ')';
 		}
 
 		return '🔗 ' . self::escape( $url );

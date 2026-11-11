@@ -2,7 +2,7 @@
 /**
  * زمان‌بندی مقاوم، روی چند قانون مستقل.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * ۲. اگر WP-Cron اصلاً اجرا نشود، بازدیدهای عادی سایت همان بررسی را انجام می‌دهند.
  * ۳. اگر ارسال شکست بخورد، همان روز چند بار دیگر تلاش می‌شود.
  */
-class DSB_Scheduler {
+class KY_Scheduler {
 
 	/**
 	 * هوک تیک دوره‌ای.
@@ -81,40 +81,40 @@ class DSB_Scheduler {
 	/**
 	 * تنظیمات.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	private $settings;
 
 	/**
 	 * قوانین.
 	 *
-	 * @var DSB_Rules
+	 * @var KY_Rules
 	 */
 	private $rules;
 
 	/**
 	 * انتشاردهنده.
 	 *
-	 * @var DSB_Publisher
+	 * @var KY_Publisher
 	 */
 	private $publisher;
 
 	/**
 	 * پایش سلامت.
 	 *
-	 * @var DSB_Health
+	 * @var KY_Health
 	 */
 	private $health;
 
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings  $settings  تنظیمات.
-	 * @param DSB_Rules     $rules     قوانین.
-	 * @param DSB_Publisher $publisher انتشاردهنده.
-	 * @param DSB_Health    $health    پایش سلامت.
+	 * @param KY_Settings  $settings  تنظیمات.
+	 * @param KY_Rules     $rules     قوانین.
+	 * @param KY_Publisher $publisher انتشاردهنده.
+	 * @param KY_Health    $health    پایش سلامت.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Rules $rules, DSB_Publisher $publisher, DSB_Health $health ) {
+	public function __construct( KY_Settings $settings, KY_Rules $rules, KY_Publisher $publisher, KY_Health $health ) {
 		$this->settings  = $settings;
 		$this->rules     = $rules;
 		$this->publisher = $publisher;
@@ -143,7 +143,7 @@ class DSB_Scheduler {
 	public function add_interval( $schedules ) {
 		$schedules[ self::INTERVAL ] = array(
 			'interval' => self::INTERVAL_SECONDS,
-			'display'  => __( 'هر ۵ دقیقه (انتشار خودکار)', 'daily-bale-post' ),
+			'display'  => __( 'هر ۵ دقیقه (انتشار خودکار)', 'kanalyar' ),
 		);
 
 		return $schedules;
@@ -295,48 +295,48 @@ class DSB_Scheduler {
 	 */
 	public function due_state( array $rule ) {
 		if ( ! $this->settings->get( 'enabled' ) ) {
-			return $this->state( 'disabled', __( 'انتشار خودکار در تنظیمات کلی خاموش است.', 'daily-bale-post' ) );
+			return $this->state( 'disabled', __( 'انتشار خودکار در تنظیمات کلی خاموش است.', 'kanalyar' ) );
 		}
 
 		if ( empty( $rule['enabled'] ) ) {
-			return $this->state( 'disabled', __( 'این قانون غیرفعال است.', 'daily-bale-post' ) );
+			return $this->state( 'disabled', __( 'این قانون غیرفعال است.', 'kanalyar' ) );
 		}
 
 		if ( empty( $rule['destinations'] ) ) {
-			return $this->state( 'no-destination', __( 'مقصدی برای این قانون انتخاب نشده است.', 'daily-bale-post' ) );
+			return $this->state( 'no-destination', __( 'مقصدی برای این قانون انتخاب نشده است.', 'kanalyar' ) );
 		}
 
-		$now   = DSB_Settings::now();
+		$now   = KY_Settings::now();
 		$today = $now->format( 'Y-m-d' );
 		$days  = array_map( 'intval', (array) $rule['days'] );
 
 		if ( $days && ! in_array( (int) $now->format( 'w' ), $days, true ) ) {
-			return $this->state( 'day-off', __( 'امروز جزو روزهای این قانون نیست.', 'daily-bale-post' ) );
+			return $this->state( 'day-off', __( 'امروز جزو روزهای این قانون نیست.', 'kanalyar' ) );
 		}
 
 		$record = $this->today_record( $rule['id'], $today );
 
 		if ( ! empty( $record['done'] ) ) {
-			return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'daily-bale-post' ) );
+			return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'kanalyar' ) );
 		}
 
 		$target = $now->setTime( (int) $rule['hour'], (int) $rule['minute'], 0 );
 
 		if ( $now < $target ) {
-			return $this->state( 'early', __( 'هنوز به ساعت این قانون نرسیده‌ایم.', 'daily-bale-post' ) );
+			return $this->state( 'early', __( 'هنوز به ساعت این قانون نرسیده‌ایم.', 'kanalyar' ) );
 		}
 
 		$max = max( 1, (int) $rule['max_attempts'] );
 
 		if ( (int) $record['attempts'] >= $max ) {
-			return $this->state( 'exhausted', __( 'تلاش‌های امروز این قانون به پایان رسیده است.', 'daily-bale-post' ) );
+			return $this->state( 'exhausted', __( 'تلاش‌های امروز این قانون به پایان رسیده است.', 'kanalyar' ) );
 		}
 
 		if ( $record['last_attempt'] && ( time() - (int) $record['last_attempt'] ) < self::RETRY_BACKOFF ) {
-			return $this->state( 'cooldown', __( 'در فاصله‌ی انتظار بین دو تلاش.', 'daily-bale-post' ) );
+			return $this->state( 'cooldown', __( 'در فاصله‌ی انتظار بین دو تلاش.', 'kanalyar' ) );
 		}
 
-		return $this->state( 'due', __( 'آماده‌ی ارسال.', 'daily-bale-post' ) );
+		return $this->state( 'due', __( 'آماده‌ی ارسال.', 'kanalyar' ) );
 	}
 
 	/**
@@ -353,16 +353,16 @@ class DSB_Scheduler {
 		}
 
 		if ( ! $this->acquire_lock() ) {
-			return $this->state( 'locked', __( 'یک ارسال دیگر در حال انجام است.', 'daily-bale-post' ) );
+			return $this->state( 'locked', __( 'یک ارسال دیگر در حال انجام است.', 'kanalyar' ) );
 		}
 
 		try {
-			$today  = DSB_Settings::now()->format( 'Y-m-d' );
+			$today  = KY_Settings::now()->format( 'Y-m-d' );
 			$record = $this->today_record( $rule['id'], $today );
 
 			// بررسی دوباره زیر قفل، تا دو درخواست هم‌زمان دوبار پست نگذارند.
 			if ( ! empty( $record['done'] ) ) {
-				return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'daily-bale-post' ) );
+				return $this->state( 'done', __( 'پست امروز این قانون ارسال شده است.', 'kanalyar' ) );
 			}
 
 			$record['attempts']     = (int) $record['attempts'] + 1;
@@ -437,7 +437,7 @@ class DSB_Scheduler {
 	 * @return array
 	 */
 	public function today( $rule_id ) {
-		return $this->today_record( $rule_id, DSB_Settings::now()->format( 'Y-m-d' ) );
+		return $this->today_record( $rule_id, KY_Settings::now()->format( 'Y-m-d' ) );
 	}
 
 	/**
@@ -537,7 +537,7 @@ class DSB_Scheduler {
 			$days = range( 0, 6 );
 		}
 
-		$now    = DSB_Settings::now();
+		$now    = KY_Settings::now();
 		$record = $this->today_record( $rule['id'], $now->format( 'Y-m-d' ) );
 
 		for ( $offset = 0; $offset <= 7; $offset++ ) {

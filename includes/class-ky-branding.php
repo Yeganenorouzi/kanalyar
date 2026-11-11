@@ -2,7 +2,7 @@
 /**
  * برندینگ اختیاری افزونه.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -16,12 +16,12 @@ defined( 'ABSPATH' ) || exit;
  * دو نسخه‌ی موازی نگه‌داری و با هم هماهنگ شوند.
  *
  * ترتیب اولویت:
- *   ۱. فیلتر dsb_branding
- *   ۲. ثابت DSB_BRANDING در wp-config.php (نام پروفایل)
+ *   ۱. فیلتر ky_branding
+ *   ۲. ثابت KY_BRANDING در wp-config.php (نام پروفایل)
  *   ۳. فایل branding/active.php که اسکریپت build می‌سازد
  *   ۴. هیچ‌کدام → بدون برند
  */
-class DSB_Branding {
+class KY_Branding {
 
 	/**
 	 * پوشه‌ی پروفایل‌های برندینگ.
@@ -131,7 +131,12 @@ class DSB_Branding {
 		 *
 		 * @param array|null $branding آرایه‌ی برندینگ یا null.
 		 */
-		$filtered = apply_filters( 'dsb_branding', null );
+		$filtered = apply_filters( 'ky_branding', null );
+
+		// نام فیلتر در نسخه‌های پیش از ۶.
+		if ( ! is_array( $filtered ) ) {
+			$filtered = apply_filters( 'dsb_branding', null );
+		}
 
 		if ( is_array( $filtered ) ) {
 			return self::normalize( $filtered, '' );
@@ -139,10 +144,13 @@ class DSB_Branding {
 
 		$slug = '';
 
-		if ( defined( 'DSB_BRANDING' ) && DSB_BRANDING ) {
+		if ( defined( 'KY_BRANDING' ) && KY_BRANDING ) {
+			$slug = (string) KY_BRANDING;
+		} elseif ( defined( 'DSB_BRANDING' ) && DSB_BRANDING ) {
+			// نام ثابت در نسخه‌های پیش از ۶؛ هنوز پشتیبانی می‌شود.
 			$slug = (string) DSB_BRANDING;
 		} else {
-			$active = DSB_PATH . self::ACTIVE_FILE;
+			$active = KY_PATH . self::ACTIVE_FILE;
 
 			if ( is_readable( $active ) ) {
 				$slug = (string) include $active;
@@ -155,7 +163,7 @@ class DSB_Branding {
 			return null;
 		}
 
-		$file = DSB_PATH . self::DIR . '/' . $slug . '/profile.php';
+		$file = KY_PATH . self::DIR . '/' . $slug . '/profile.php';
 
 		if ( ! is_readable( $file ) ) {
 			return null;
@@ -205,7 +213,7 @@ class DSB_Branding {
 			return '';
 		}
 
-		return DSB_URL . self::DIR . '/' . $profile['slug'] . '/' . ltrim( $file, '/' );
+		return KY_URL . self::DIR . '/' . $profile['slug'] . '/' . ltrim( $file, '/' );
 	}
 
 	/**
@@ -220,6 +228,6 @@ class DSB_Branding {
 			return '';
 		}
 
-		return DSB_PATH . self::DIR . '/' . $profile['slug'] . '/' . ltrim( $file, '/' );
+		return KY_PATH . self::DIR . '/' . $profile['slug'] . '/' . ltrim( $file, '/' );
 	}
 }

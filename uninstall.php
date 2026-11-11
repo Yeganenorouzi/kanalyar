@@ -2,12 +2,29 @@
 /**
  * پاک‌سازی داده‌های افزونه هنگام حذف.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-$dsb_options = array(
+/*
+ * اگر نسخه‌ی دیگری از همین افزونه (با نام پوشه‌ی قدیمی یا جدید) هنوز
+ * روی سایت هست، داده‌ها مشترک‌اند و نباید پاک شوند؛ وگرنه حذف نسخه‌ی
+ * قدیمی بعد از نصب نسخه‌ی تازه، تنظیمات را از بین می‌برد.
+ */
+$ky_siblings = array(
+	WP_PLUGIN_DIR . '/kanalyar/kanalyar.php',
+	WP_PLUGIN_DIR . '/daily-bale-post/daily-bale-post.php',
+	WP_PLUGIN_DIR . '/daily-bale-post/kanalyar.php',
+);
+
+foreach ( $ky_siblings as $ky_sibling ) {
+	if ( $ky_sibling !== WP_UNINSTALL_PLUGIN && file_exists( $ky_sibling ) ) {
+		return;
+	}
+}
+
+$ky_options = array(
 	// آپشن‌های نسخه‌ی ۴.
 	'dsb_settings',
 	'dsb_version',
@@ -19,6 +36,7 @@ $dsb_options = array(
 	'dsb_last_cron_tick',
 	'dsb_scheduled_at',
 	'dsb_last_alert',
+	'dsb_installed_at',
 	'dsb_destinations',
 	'dsb_rules',
 	// آپشن‌های نسخه‌های پیش از ۴.
@@ -35,8 +53,8 @@ $dsb_options = array(
 	'dsb_show_price',
 );
 
-foreach ( $dsb_options as $dsb_option ) {
-	delete_option( $dsb_option );
+foreach ( $ky_options as $ky_option ) {
+	delete_option( $ky_option );
 }
 
 // آپشن‌های پویا: وضعیت امروز و تاریخچه‌ی هر قانون.

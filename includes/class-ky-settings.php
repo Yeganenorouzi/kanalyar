@@ -2,7 +2,7 @@
 /**
  * تنظیمات سراسری افزونه.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,9 +10,9 @@ defined( 'ABSPATH' ) || exit;
 /**
  * تنظیماتی که به یک قانون خاص مربوط نیستند.
  *
- * محتوا، مقصد و زمان‌بندی در DSB_Rules و DSB_Destinations نگه‌داری می‌شوند.
+ * محتوا، مقصد و زمان‌بندی در KY_Rules و KY_Destinations نگه‌داری می‌شوند.
  */
-class DSB_Settings {
+class KY_Settings {
 
 	/**
 	 * نام آپشنی که تنظیمات سراسری در آن ذخیره می‌شود.
@@ -53,10 +53,10 @@ class DSB_Settings {
 	 */
 	public static function photo_modes() {
 		return array(
-			'auto'   => __( 'خودکار — اول لینک، اگر نشد آپلود مستقیم (پیشنهادی)', 'daily-bale-post' ),
-			'upload' => __( 'همیشه آپلود مستقیم فایل', 'daily-bale-post' ),
-			'url'    => __( 'فقط ارسال لینک تصویر', 'daily-bale-post' ),
-			'none'   => __( 'بدون تصویر (فقط متن)', 'daily-bale-post' ),
+			'auto'   => __( 'خودکار — اول لینک، اگر نشد آپلود مستقیم (پیشنهادی)', 'kanalyar' ),
+			'upload' => __( 'همیشه آپلود مستقیم فایل', 'kanalyar' ),
+			'url'    => __( 'فقط ارسال لینک تصویر', 'kanalyar' ),
+			'none'   => __( 'بدون تصویر (فقط متن)', 'kanalyar' ),
 		);
 	}
 
@@ -157,13 +157,13 @@ class DSB_Settings {
 	/**
 	 * نصب و مهاجرت.
 	 *
-	 * @param DSB_Destinations $destinations مقصدها.
-	 * @param DSB_Rules        $rules        قوانین.
+	 * @param KY_Destinations $destinations مقصدها.
+	 * @param KY_Rules        $rules        قوانین.
 	 * @return void
 	 */
-	public function install( DSB_Destinations $destinations, DSB_Rules $rules ) {
-		if ( ! get_option( DSB_Health::INSTALLED_OPTION, 0 ) ) {
-			update_option( DSB_Health::INSTALLED_OPTION, time(), false );
+	public function install( KY_Destinations $destinations, KY_Rules $rules ) {
+		if ( ! get_option( KY_Health::INSTALLED_OPTION, 0 ) ) {
+			update_option( KY_Health::INSTALLED_OPTION, time(), false );
 		}
 
 		$legacy = $this->collect_legacy();
@@ -196,22 +196,22 @@ class DSB_Settings {
 	 * ساخت اولین مقصد و قانون از تنظیمات نسخه‌های قبل.
 	 *
 	 * @param array            $legacy       تنظیمات قدیمی.
-	 * @param DSB_Destinations $destinations مقصدها.
-	 * @param DSB_Rules        $rules        قوانین.
+	 * @param KY_Destinations $destinations مقصدها.
+	 * @param KY_Rules        $rules        قوانین.
 	 * @return void
 	 */
-	private function seed_from_legacy( array $legacy, DSB_Destinations $destinations, DSB_Rules $rules ) {
+	private function seed_from_legacy( array $legacy, KY_Destinations $destinations, KY_Rules $rules ) {
 		$token   = (string) ( $legacy['token'] ?? '' );
 		$channel = (string) ( $legacy['channel'] ?? '' );
 
 		// نصب تازه: یک قانون و مقصد خالی بساز تا کاربر فقط پرشان کند.
-		$destination_id = DSB_Destinations::new_id();
+		$destination_id = KY_Destinations::new_id();
 
 		$destinations->save(
 			array(
 				array(
 					'id'       => $destination_id,
-					'label'    => '' !== $channel ? $channel : __( 'کانال بله', 'daily-bale-post' ),
+					'label'    => '' !== $channel ? $channel : __( 'کانال بله', 'kanalyar' ),
 					'platform' => 'bale',
 					'token'    => $token,
 					'chat_id'  => $channel,
@@ -225,12 +225,12 @@ class DSB_Settings {
 		$rules->save(
 			array(
 				array_merge(
-					DSB_Rules::blank(),
+					KY_Rules::blank(),
 					array(
-						'id'           => DSB_Rules::new_id(),
+						'id'           => KY_Rules::new_id(),
 						'label'        => $has_products
-							? __( 'محصولات روزانه', 'daily-bale-post' )
-							: __( 'نوشته‌های روزانه', 'daily-bale-post' ),
+							? __( 'محصولات روزانه', 'kanalyar' )
+							: __( 'نوشته‌های روزانه', 'kanalyar' ),
 						'enabled'      => 1,
 						'post_types'   => $has_products ? array( 'product' ) : array( 'post' ),
 						'terms'        => $this->legacy_terms( $legacy, $has_products ),

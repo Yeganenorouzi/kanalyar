@@ -2,7 +2,7 @@
 /**
  * پایش سلامت افزونه و هشدار.
  *
- * @package DailyBalePost
+ * @package Kanalyar
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * تشخیص اینکه انتشار خودکار واقعاً دارد انجام می‌شود یا نه.
  */
-class DSB_Health {
+class KY_Health {
 
 	/**
 	 * آپشن تاریخ آخرین هشدار ارسال‌شده.
@@ -35,32 +35,32 @@ class DSB_Health {
 	/**
 	 * تنظیمات.
 	 *
-	 * @var DSB_Settings
+	 * @var KY_Settings
 	 */
 	private $settings;
 
 	/**
 	 * تاریخچه.
 	 *
-	 * @var DSB_Logger
+	 * @var KY_Logger
 	 */
 	private $logger;
 
 	/**
 	 * قوانین.
 	 *
-	 * @var DSB_Rules
+	 * @var KY_Rules
 	 */
 	private $rules;
 
 	/**
 	 * سازنده.
 	 *
-	 * @param DSB_Settings $settings تنظیمات.
-	 * @param DSB_Logger   $logger   تاریخچه.
-	 * @param DSB_Rules    $rules    قوانین.
+	 * @param KY_Settings $settings تنظیمات.
+	 * @param KY_Logger   $logger   تاریخچه.
+	 * @param KY_Rules    $rules    قوانین.
 	 */
-	public function __construct( DSB_Settings $settings, DSB_Logger $logger, DSB_Rules $rules ) {
+	public function __construct( KY_Settings $settings, KY_Logger $logger, KY_Rules $rules ) {
 		$this->settings = $settings;
 		$this->logger   = $logger;
 		$this->rules    = $rules;
@@ -85,10 +85,10 @@ class DSB_Health {
 	/**
 	 * گزارش وضعیت برای نمایش در پنل.
 	 *
-	 * @param DSB_Scheduler $scheduler زمان‌بند.
+	 * @param KY_Scheduler $scheduler زمان‌بند.
 	 * @return array
 	 */
-	public function report( DSB_Scheduler $scheduler ) {
+	public function report( KY_Scheduler $scheduler ) {
 		$last_tick = $scheduler->last_tick();
 		$last_cron = $scheduler->last_cron_tick();
 		$days      = $this->days_since_success();
@@ -193,7 +193,7 @@ class DSB_Health {
 			return false;
 		}
 
-		$today = DSB_Settings::now()->format( 'Y-m-d' );
+		$today = KY_Settings::now()->format( 'Y-m-d' );
 
 		if ( get_option( self::LAST_ALERT_OPTION, '' ) === $today ) {
 			return false;
@@ -213,23 +213,23 @@ class DSB_Health {
 	private function send_alert( $days ) {
 		$site  = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$last  = $this->logger->last();
-		$panel = admin_url( 'admin.php?page=dsb-settings' );
+		$panel = admin_url( 'admin.php?page=' . KY_Admin::SLUG );
 
 		/* translators: %s: نام سایت. */
-		$subject = sprintf( __( '[%s] انتشار خودکار انجام نشده است', 'daily-bale-post' ), $site );
+		$subject = sprintf( __( '[%s] انتشار خودکار انجام نشده است', 'kanalyar' ), $site );
 
 		$lines = array();
 
 		if ( null === $days ) {
-			$lines[] = __( 'تا این لحظه هیچ ارسال موفقی در تاریخچه ثبت نشده است.', 'daily-bale-post' );
+			$lines[] = __( 'تا این لحظه هیچ ارسال موفقی در تاریخچه ثبت نشده است.', 'kanalyar' );
 		} else {
 			/* translators: %d: تعداد روز. */
-			$lines[] = sprintf( __( 'از آخرین ارسال موفق %d روز گذشته است.', 'daily-bale-post' ), $days );
+			$lines[] = sprintf( __( 'از آخرین ارسال موفق %d روز گذشته است.', 'kanalyar' ), $days );
 		}
 
 		if ( $last ) {
 			$lines[] = '';
-			$lines[] = __( 'آخرین رویداد ثبت‌شده:', 'daily-bale-post' );
+			$lines[] = __( 'آخرین رویداد ثبت‌شده:', 'kanalyar' );
 			$lines[] = sprintf(
 				'%s — %s — %s',
 				get_date_from_gmt( gmdate( 'Y-m-d H:i:s', (int) $last['time'] ), 'Y-m-d H:i' ),
@@ -239,10 +239,10 @@ class DSB_Health {
 		}
 
 		$lines[] = '';
-		$lines[] = __( 'بررسی‌های پیشنهادی:', 'daily-bale-post' );
-		$lines[] = __( '۱. توکن بات و ادمین بودنش در کانال.', 'daily-bale-post' );
-		$lines[] = __( '۲. صفحه‌ی تنظیمات افزونه، بخش «وضعیت سلامت».', 'daily-bale-post' );
-		$lines[] = __( '۳. فعال بودن cron سمت سرور.', 'daily-bale-post' );
+		$lines[] = __( 'بررسی‌های پیشنهادی:', 'kanalyar' );
+		$lines[] = __( '۱. توکن بات و ادمین بودنش در کانال.', 'kanalyar' );
+		$lines[] = __( '۲. صفحه‌ی تنظیمات افزونه، بخش «وضعیت سلامت».', 'kanalyar' );
+		$lines[] = __( '۳. فعال بودن cron سمت سرور.', 'kanalyar' );
 		$lines[] = '';
 		$lines[] = $panel;
 
