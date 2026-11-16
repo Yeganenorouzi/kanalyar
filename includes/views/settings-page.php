@@ -17,6 +17,62 @@ $dsb_next_run = $this->scheduler->next_run();
 $dsb_today    = $this->scheduler->today();
 $dsb_weekdays = DSB_Admin::weekdays();
 
+// نوع محتوای انتخاب‌شده، برای ساختن فهرست طبقه‌بندی‌ها.
+$dsb_post_types     = DSB_Content_Selector::available_post_types();
+$dsb_selected_types = array_values( array_filter( (array) $s['post_types'] ) );
+$dsb_term_groups    = DSB_Content_Selector::available_terms(
+	$dsb_selected_types ? $dsb_selected_types : array_keys( $dsb_post_types )
+);
+$dsb_selected_terms = (array) $s['terms'];
+
+// وضعیت هر کانال، برای نشان‌دادن روی کارت خودش.
+$dsb_chan_map = array();
+
+foreach ( (array) $channels as $dsb_row ) {
+	$dsb_chan_map[ $dsb_row['platform'] ] = $dsb_row;
+}
+
+$dsb_channel_cards = array(
+	array(
+		'platform'        => 'bale',
+		'label'           => DSB_Messenger::platform_label( 'bale' ),
+		'icon'            => '🔌',
+		'class'           => 'dsb-card--connect',
+		'enabled_key'     => 'bale_enabled',
+		'token_key'       => 'token',
+		'channel_key'     => 'channel',
+		'template_key'    => 'bale_template',
+		'photo_key'       => 'bale_photo_mode',
+		'button_key'      => 'bale_button',
+		'button_text_key' => 'bale_button_text',
+		'endpoint_key'    => '',
+		'token_hint'      => __( 'توکن را از @BotFather در بله بگیرید.', 'daily-bale-post' ),
+		'channel_hint'    => __( 'یوزرنیم کانال بله با @ . بات باید ادمین کانال باشد.', 'daily-bale-post' ),
+		'notes'           => array(),
+		'status'          => $dsb_chan_map['bale'] ?? array(),
+	),
+	array(
+		'platform'        => 'telegram',
+		'label'           => DSB_Messenger::platform_label( 'telegram' ),
+		'icon'            => '✈️',
+		'class'           => 'dsb-card--telegram',
+		'enabled_key'     => 'telegram_enabled',
+		'token_key'       => 'telegram_token',
+		'channel_key'     => 'telegram_channel',
+		'template_key'    => 'telegram_template',
+		'photo_key'       => 'telegram_photo_mode',
+		'button_key'      => 'telegram_button',
+		'button_text_key' => 'telegram_button_text',
+		'endpoint_key'    => 'telegram_endpoint',
+		'token_hint'      => __( 'توکن را از @BotFather در تلگرام بگیرید؛ توکن بله و تلگرام با هم فرق دارند.', 'daily-bale-post' ),
+		'channel_hint'    => __( 'یوزرنیم کانال با @ ، یا برای کانال خصوصی آیدی عددی مثل -1001234567890. بات باید ادمین کانال باشد.', 'daily-bale-post' ),
+		'notes'           => array(
+			__( 'اگر در تاریخچه برای تلگرام خطای قطعی شبکه (cURL یا timeout) دیدید، یعنی سرور به api.telegram.org دسترسی ندارد؛ نشانی پراکسی را در فیلد بالا بگذارید. ارسال به بله مستقل از این موضوع کار می‌کند.', 'daily-bale-post' ),
+		),
+		'status'          => $dsb_chan_map['telegram'] ?? array(),
+	),
+);
+
 $dsb_levels = array(
 	'good' => array( '✅', __( 'سالم', 'daily-bale-post' ) ),
 	'warn' => array( '⚠️', __( 'نیازمند بررسی', 'daily-bale-post' ) ),
@@ -34,7 +90,7 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 				<img src="<?php echo esc_url( DSB_URL . 'assets/optisun-logo.svg' ); ?>" alt="<?php echo esc_attr( DSB_Admin::AGENCY_NAME ); ?>">
 			</div>
 			<div class="dsb-cta-text">
-				<strong><?php esc_html_e( 'افزونه‌ی ارسال روزانه به بله', 'daily-bale-post' ); ?></strong>
+				<strong><?php esc_html_e( 'افزونه‌ی ارسال روزانه به بله و تلگرام', 'daily-bale-post' ); ?></strong>
 				<span>
 					<?php
 					printf(
@@ -54,7 +110,7 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 
 	<div class="dsb-page-title">
 		<span class="dashicons dashicons-share"></span>
-		<h1><?php esc_html_e( 'ارسال روزانه محصول به بله', 'daily-bale-post' ); ?></h1>
+		<h1><?php esc_html_e( 'ارسال روزانه محتوا به بله و تلگرام', 'daily-bale-post' ); ?></h1>
 	</div>
 	<p class="dsb-sub">
 		<?php
@@ -73,9 +129,16 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 				<strong class="dsb-notice-title"><?php echo esc_html( $notice['title'] ); ?></strong>
 				<p class="dsb-notice-msg"><?php echo esc_html( $notice['message'] ); ?></p>
 				<?php if ( ! empty( $notice['details'] ) ) : ?>
-					<details class="dsb-notice-details">
-						<summary><?php esc_html_e( 'جزئیات فنی', 'daily-bale-post' ); ?></summary>
-						<pre dir="ltr"><?php echo esc_html( $notice['details'] ); ?></pre>
+					<?php $dsb_dir = ( 'rtl' === ( $notice['dir'] ?? 'ltr' ) ) ? 'rtl' : 'ltr'; ?>
+					<details class="dsb-notice-details" open>
+						<summary>
+							<?php
+							echo 'rtl' === $dsb_dir
+								? esc_html__( 'متن پیام', 'daily-bale-post' )
+								: esc_html__( 'جزئیات فنی', 'daily-bale-post' );
+							?>
+						</summary>
+						<pre dir="<?php echo esc_attr( $dsb_dir ); ?>"><?php echo esc_html( $notice['details'] ); ?></pre>
 					</details>
 				<?php endif; ?>
 			</div>
@@ -187,8 +250,14 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 		<?php wp_nonce_field( DSB_Admin::NONCE ); ?>
 		<input type="hidden" name="action" value="dsb_handle">
 
-		<div class="dsb-card dsb-card--connect">
-			<h2><span class="dsb-h2-icon">🔌</span> <?php esc_html_e( 'اتصال به بله', 'daily-bale-post' ); ?></h2>
+		<input type="hidden" name="dsb_target" id="dsb_target_field" value="">
+
+		<?php // دکمه‌ی پیش‌فرضِ فرم: با زدن Enter داخل فیلدها، تنظیمات ذخیره می‌شود، نه اکشن‌های تست. ?>
+		<button type="submit" name="dsb_action" value="save" class="dsb-default-submit" tabindex="-1" aria-hidden="true"
+			onclick="document.getElementById('dsb_target_field').value='';"></button>
+
+		<div class="dsb-card dsb-card--master">
+			<h2><span class="dsb-h2-icon">🎛️</span> <?php esc_html_e( 'کلید اصلی و کانال‌ها', 'daily-bale-post' ); ?></h2>
 			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row"><label for="dsb_enabled"><?php esc_html_e( 'فعال باشد', 'daily-bale-post' ); ?></label></th>
@@ -197,22 +266,88 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 							<input type="checkbox" name="dsb[enabled]" id="dsb_enabled" value="1" <?php checked( $s['enabled'], 1 ); ?>>
 							<?php esc_html_e( 'ارسال خودکار روزانه فعال باشد', 'daily-bale-post' ); ?>
 						</label>
+						<p class="description"><?php esc_html_e( 'کلید اصلی افزونه. با برداشتن این تیک، هیچ پستی به هیچ کانالی نمی‌رود — حتی اگر کانال‌ها روشن باشند.', 'daily-bale-post' ); ?></p>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="dsb_token"><?php esc_html_e( 'توکن بات بله', 'daily-bale-post' ); ?></label></th>
+					<th scope="row"><?php esc_html_e( 'کانال‌ها', 'daily-bale-post' ); ?></th>
 					<td>
-						<input type="text" name="dsb[token]" id="dsb_token" value="<?php echo esc_attr( $s['token'] ); ?>"
-							class="regular-text" dir="ltr" autocomplete="off" placeholder="123456:ABC...">
-						<p class="description"><?php esc_html_e( 'توکن را از @BotFather در بله بگیرید.', 'daily-bale-post' ); ?></p>
+						<ul class="dsb-chan-summary">
+							<?php foreach ( (array) $channels as $dsb_chan ) : ?>
+								<li>
+									<strong><?php echo esc_html( $dsb_chan['label'] ); ?>:</strong>
+									<?php if ( ! empty( $dsb_chan['ready'] ) ) : ?>
+										<span class="dsb-ok"><?php esc_html_e( 'روشن و آماده', 'daily-bale-post' ); ?></span>
+									<?php elseif ( empty( $dsb_chan['enabled'] ) ) : ?>
+										<span class="dsb-dim"><?php esc_html_e( 'خاموش', 'daily-bale-post' ); ?></span>
+									<?php else : ?>
+										<span class="dsb-bad"><?php esc_html_e( 'روشن ولی توکن یا آیدی کانال ندارد', 'daily-bale-post' ); ?></span>
+									<?php endif; ?>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+						<p class="description"><?php esc_html_e( 'هر کانال تنظیمات، متن پیام و حالت تصویرِ خودش را دارد؛ خاموش‌کردن یکی به دیگری کاری ندارد.', 'daily-bale-post' ); ?></p>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<?php
+		foreach ( $dsb_channel_cards as $dsb_c ) {
+			include DSB_PATH . 'includes/views/channel-card.php';
+		}
+		?>
+
+		<div class="dsb-card dsb-card--content">
+			<h2><span class="dsb-h2-icon">🛍️</span> <?php esc_html_e( 'محتوای پست', 'daily-bale-post' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="dsb_post_types"><?php esc_html_e( 'نوع محتوا', 'daily-bale-post' ); ?></label></th>
+					<td>
+						<?php if ( empty( $dsb_post_types ) ) : ?>
+							<em><?php esc_html_e( 'هیچ نوع محتوایی پیدا نشد.', 'daily-bale-post' ); ?></em>
+						<?php else : ?>
+							<select name="dsb[post_types][]" id="dsb_post_types" multiple size="6" class="dsb-cats">
+								<?php foreach ( $dsb_post_types as $dsb_type_slug => $dsb_type_label ) : ?>
+									<option value="<?php echo esc_attr( $dsb_type_slug ); ?>" <?php selected( in_array( $dsb_type_slug, $dsb_selected_types, true ) ); ?>>
+										<?php echo esc_html( $dsb_type_label ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						<?php endif; ?>
+						<p class="description">
+							<?php esc_html_e( 'از کدام نوع محتوایی پست گرفته شود: محصول ووکامرس، نوشته، برگه یا هر نوع پست سفارشی. اگر چند مورد انتخاب کنید، هر روز از میان همه‌ی آن‌ها یکی تصادفی ارسال می‌شود.', 'daily-bale-post' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'نوع پست‌هایی که با جت‌انجین (JetEngine) یا هر افزونه‌ی دیگری ساخته شده باشند، خودشان در همین فهرست می‌آیند.', 'daily-bale-post' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="dsb_channel"><?php esc_html_e( 'آیدی کانال', 'daily-bale-post' ); ?></label></th>
+					<th scope="row"><label for="dsb_terms"><?php esc_html_e( 'دسته‌بندی و ترم', 'daily-bale-post' ); ?></label></th>
 					<td>
-						<input type="text" name="dsb[channel]" id="dsb_channel" value="<?php echo esc_attr( $s['channel'] ); ?>"
-							class="regular-text" dir="ltr" placeholder="@yourchannel">
-						<p class="description"><?php esc_html_e( 'یوزرنیم کانال با @ . بات باید ادمین کانال باشد.', 'daily-bale-post' ); ?></p>
+						<?php if ( empty( $dsb_term_groups ) ) : ?>
+							<em><?php esc_html_e( 'برای نوع محتوای انتخاب‌شده، طبقه‌بندی‌ای با ترم پیدا نشد.', 'daily-bale-post' ); ?></em>
+						<?php else : ?>
+							<select name="dsb[terms][]" id="dsb_terms" multiple size="8" class="dsb-cats">
+								<?php foreach ( $dsb_term_groups as $dsb_tax => $dsb_group ) : ?>
+									<optgroup label="<?php echo esc_attr( $dsb_group['label'] ); ?>">
+										<?php foreach ( $dsb_group['terms'] as $dsb_term_id => $dsb_term_label ) : ?>
+											<?php $dsb_value = $dsb_tax . ':' . (int) $dsb_term_id; ?>
+											<option value="<?php echo esc_attr( $dsb_value ); ?>" <?php selected( in_array( $dsb_value, $dsb_selected_terms, true ) ); ?>>
+												<?php echo esc_html( $dsb_term_label ); ?>
+											</option>
+										<?php endforeach; ?>
+									</optgroup>
+								<?php endforeach; ?>
+							</select>
+						<?php endif; ?>
+						<p class="description">
+							<?php esc_html_e( 'برای انتخاب چند مورد، کلید Ctrl (یا Cmd) را نگه دارید. اگر چیزی انتخاب نکنید، همه‌ی مطالبِ نوع محتوای انتخاب‌شده در گردش قرار می‌گیرند.', 'daily-bale-post' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'این فهرست بر اساس نوع محتوای ذخیره‌شده ساخته می‌شود؛ بعد از تغییر نوع محتوا یک بار ذخیره کنید تا طبقه‌بندی‌های تازه (از جمله طبقه‌بندی‌های جت‌انجین) اینجا بیایند.', 'daily-bale-post' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
@@ -220,55 +355,15 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 					<td>
 						<input type="text" name="dsb[phone]" id="dsb_phone" value="<?php echo esc_attr( $s['phone'] ); ?>"
 							class="regular-text" dir="ltr" placeholder="09120000000">
-						<p class="description"><?php esc_html_e( 'برای محصولات بدون قیمت نمایش داده می‌شود. اختیاری.', 'daily-bale-post' ); ?></p>
-					</td>
-				</tr>
-			</table>
-		</div>
-
-		<div class="dsb-card dsb-card--content">
-			<h2><span class="dsb-h2-icon">🛍️</span> <?php esc_html_e( 'محتوای پست', 'daily-bale-post' ); ?></h2>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row"><label for="dsb_categories"><?php esc_html_e( 'دسته‌بندی محصولات', 'daily-bale-post' ); ?></label></th>
-					<td>
-						<?php
-						$dsb_terms = taxonomy_exists( 'product_cat' )
-							? get_terms(
-								array(
-									'taxonomy'   => 'product_cat',
-									'hide_empty' => false,
-								)
-							)
-							: array();
-
-						if ( is_wp_error( $dsb_terms ) || empty( $dsb_terms ) ) {
-							echo '<em>' . esc_html__( 'دسته‌بندی محصولی پیدا نشد (ووکامرس فعال است؟)', 'daily-bale-post' ) . '</em>';
-						} else {
-							echo '<select name="dsb[categories][]" id="dsb_categories" multiple size="6" class="dsb-cats">';
-							foreach ( $dsb_terms as $dsb_term ) {
-								printf(
-									'<option value="%1$d" %2$s>%3$s (%4$d)</option>',
-									(int) $dsb_term->term_id,
-									selected( in_array( (int) $dsb_term->term_id, (array) $s['categories'], true ), true, false ),
-									esc_html( $dsb_term->name ),
-									(int) $dsb_term->count
-								);
-							}
-							echo '</select>';
-						}
-						?>
-						<p class="description">
-							<?php esc_html_e( 'برای انتخاب چند دسته، کلید Ctrl (یا Cmd) را نگه دارید. اگر چیزی انتخاب نکنید، از همه‌ی محصولات انتخاب می‌شود.', 'daily-bale-post' ); ?>
-						</p>
+						<p class="description"><?php esc_html_e( 'برای محصولات بدون قیمت در متن پست نمایش داده می‌شود. اختیاری.', 'daily-bale-post' ); ?></p>
 					</td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="dsb_avoid"><?php esc_html_e( 'جلوگیری از تکرار', 'daily-bale-post' ); ?></label></th>
 					<td>
 						<input type="number" name="dsb[avoid]" id="dsb_avoid" min="0" max="500" value="<?php echo esc_attr( $s['avoid'] ); ?>" class="small-text">
-						<?php esc_html_e( 'محصول اخیر', 'daily-bale-post' ); ?>
-						<p class="description"><?php esc_html_e( 'این تعداد از آخرین محصولاتِ پست‌شده دوباره انتخاب نمی‌شوند. عدد ۰ یعنی بدون محدودیت.', 'daily-bale-post' ); ?></p>
+						<?php esc_html_e( 'مطلب اخیر', 'daily-bale-post' ); ?>
+						<p class="description"><?php esc_html_e( 'این تعداد از آخرین مطالبِ پست‌شده دوباره انتخاب نمی‌شوند. عدد ۰ یعنی بدون محدودیت.', 'daily-bale-post' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -278,6 +373,7 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 							<input type="checkbox" name="dsb[instock]" value="1" <?php checked( $s['instock'], 1 ); ?>>
 							<?php esc_html_e( 'فقط محصولات موجود پست شوند (ناموجودها رد می‌شوند)', 'daily-bale-post' ); ?>
 						</label>
+						<p class="description"><?php esc_html_e( 'فقط روی محصولات ووکامرس اثر دارد؛ نوشته‌ها و نوع پست‌های دیگر با این فیلتر حذف نمی‌شوند.', 'daily-bale-post' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -287,20 +383,8 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 							<input type="checkbox" name="dsb[show_price]" value="1" <?php checked( $s['show_price'], 1 ); ?>>
 							<?php esc_html_e( 'قیمت محصول در پست نمایش داده شود', 'daily-bale-post' ); ?>
 						</label>
+						<p class="description"><?php esc_html_e( 'بخش قیمت فقط برای محصولات ووکامرس ساخته می‌شود؛ نوشته‌ها بدون قیمت ارسال می‌شوند.', 'daily-bale-post' ); ?></p>
 						<p class="description"><?php esc_html_e( 'اگر غیرفعال کنید، در صورت وجود شماره تماس به‌جای قیمت «استعلام قیمت» نشان داده می‌شود.', 'daily-bale-post' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><label for="dsb_photo_mode"><?php esc_html_e( 'ارسال تصویر', 'daily-bale-post' ); ?></label></th>
-					<td>
-						<select name="dsb[photo_mode]" id="dsb_photo_mode">
-							<?php foreach ( DSB_Settings::photo_modes() as $dsb_mode_key => $dsb_mode_label ) : ?>
-								<option value="<?php echo esc_attr( $dsb_mode_key ); ?>" <?php selected( $s['photo_mode'], $dsb_mode_key ); ?>>
-									<?php echo esc_html( $dsb_mode_label ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description"><?php esc_html_e( 'اگر بله نتواند تصویر را از سایت بگیرد (خطای failed to get HTTP URL content)، حالت خودکار فایل را مستقیم آپلود می‌کند.', 'daily-bale-post' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -368,8 +452,9 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 			<button type="submit" name="dsb_action" value="save" class="button button-primary">
 				💾 <?php esc_html_e( 'ذخیره تنظیمات', 'daily-bale-post' ); ?>
 			</button>
-			<button type="submit" name="dsb_action" value="test" class="button">
-				🚀 <?php esc_html_e( 'ارسال تستی الان', 'daily-bale-post' ); ?>
+			<button type="submit" name="dsb_action" value="test" class="button"
+				onclick="document.getElementById('dsb_target_field').value='';">
+				🚀 <?php esc_html_e( 'ارسال تستی به همه‌ی کانال‌های فعال', 'daily-bale-post' ); ?>
 			</button>
 			<span class="description"><?php esc_html_e( 'ارسال تستی جای پست خودکار امروز را نمی‌گیرد.', 'daily-bale-post' ); ?></span>
 		</p>
@@ -385,7 +470,7 @@ $dsb_level = $dsb_levels[ $report['level'] ] ?? $dsb_levels['warn'];
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'زمان', 'daily-bale-post' ); ?></th>
-						<th><?php esc_html_e( 'محصول', 'daily-bale-post' ); ?></th>
+						<th><?php esc_html_e( 'مطلب', 'daily-bale-post' ); ?></th>
 						<th><?php esc_html_e( 'منبع', 'daily-bale-post' ); ?></th>
 						<th><?php esc_html_e( 'وضعیت', 'daily-bale-post' ); ?></th>
 					</tr>

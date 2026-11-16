@@ -33,7 +33,7 @@ class DSB_Logger {
 	 * افزودن یک ردیف.
 	 *
 	 * @param string $state  یکی از ثابت‌های STATE_*.
-	 * @param string $name   نام محصول یا توضیح کوتاه.
+	 * @param string $name   نام مطلب یا توضیح کوتاه.
 	 * @param string $msg    پیام وضعیت.
 	 * @param string $source منبع اجرا: auto | manual | repair.
 	 * @return void

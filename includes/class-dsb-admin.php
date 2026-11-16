@@ -119,8 +119,8 @@ class DSB_Admin {
 	 */
 	public function add_menu() {
 		add_menu_page(
-			__( 'ارسال به بله', 'daily-bale-post' ) . ' | ' . self::AGENCY_NAME,
-			__( 'ارسال به بله', 'daily-bale-post' ),
+			__( 'ارسال به بله و تلگرام', 'daily-bale-post' ) . ' | ' . self::AGENCY_NAME,
+			__( 'ارسال به بله و تلگرام', 'daily-bale-post' ),
 			'manage_options',
 			self::SLUG,
 			array( $this, 'render' ),
@@ -209,6 +209,8 @@ class DSB_Admin {
 		check_admin_referer( self::NONCE );
 
 		$action = isset( $_POST['dsb_action'] ) ? sanitize_key( wp_unslash( $_POST['dsb_action'] ) ) : '';
+		$target = isset( $_POST['dsb_target'] ) ? sanitize_key( wp_unslash( $_POST['dsb_target'] ) ) : '';
+		$target = array_key_exists( $target, DSB_Messenger::platforms() ) ? $target : '';
 
 		switch ( $action ) {
 			case 'save':
@@ -216,7 +218,15 @@ class DSB_Admin {
 				break;
 
 			case 'test':
-				$this->do_test();
+				$this->do_test( $target );
+				break;
+
+			case 'check':
+				$this->do_check( $target );
+				break;
+
+			case 'preview':
+				$this->do_preview( $target );
 				break;
 
 			case 'repair':
@@ -234,11 +244,7 @@ class DSB_Admin {
 	 * @return void
 	 */
 	private function do_save() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- نانس در handle_post بررسی شده.
-		$raw = isset( $_POST['dsb'] ) ? (array) wp_unslash( $_POST['dsb'] ) : array();
-
-		$this->settings->save( $this->settings->sanitize( $raw ) );
-		$this->scheduler->ensure_scheduled();
+		$this->save_posted();
 
 		$this->notice(
 			'success',
@@ -248,22 +254,64 @@ class DSB_Admin {
 	}
 
 	/**
+	 * ذخیره‌ی ورودی فرم تنظیمات.
+	 *
+	 * اکشن‌های تست و پیش‌نمایش هم اول همین را صدا می‌زنند تا کاربر
+	 * مجبور نباشد قبل از هر تست یک بار دکمه‌ی ذخیره را بزند.
+	 *
+	 * @return bool آیا داده‌ای برای ذخیره بود.
+	 */
+	private function save_posted() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- نانس در handle_post بررسی شده.
+		if ( ! isset( $_POST['dsb'] ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- نانس در handle_post بررسی شده.
+		$raw = (array) wp_unslash( $_POST['dsb'] );
+
+		$this->settings->save( $this->settings->sanitize( $raw ) );
+		$this->scheduler->ensure_scheduled();
+
+		return true;
+	}
+
+	/**
 	 * ارسال تستی.
 	 *
+	 * @param string $target فقط این کانال (خالی = همه‌ی کانال‌های فعال).
 	 * @return void
 	 */
-	private function do_test() {
-		$result = $this->scheduler->run_now();
+	private function do_test( $target = '' ) {
+		$this->save_posted();
+
+		$result = $this->scheduler->run_now( $target );
 
 		if ( ! empty( $result['ok'] ) ) {
+			$channels = ! empty( $result['sent'] )
+				? implode( '، ', $result['sent'] )
+				: __( 'کانال‌های فعال', 'daily-bale-post' );
+
 			$this->notice(
-				'success',
-				__( 'ارسال موفق', 'daily-bale-post' ),
+				! empty( $result['failed'] ) ? 'error' : 'success',
+				! empty( $result['failed'] )
+					? __( 'ارسال نیمه‌موفق', 'daily-bale-post' )
+					: __( 'ارسال موفق', 'daily-bale-post' ),
 				sprintf(
-					/* translators: %s: نام محصول. */
-					__( 'محصول «%s» با موفقیت به کانال بله ارسال شد.', 'daily-bale-post' ),
-					$result['product']
-				)
+					/* translators: 1: نام مطلب، 2: نام کانال‌ها. */
+					__( 'مطلب «%1$s» با موفقیت به %2$s ارسال شد.', 'daily-bale-post' ),
+					$result['product'],
+					$channels
+				) . ( ! empty( $result['failed'] )
+					? ' ' . sprintf(
+						/* translators: %s: فهرست کانال‌های ناموفق. */
+						__( 'ولی این کانال‌ها ناموفق بودند: %s', 'daily-bale-post' ),
+						implode( ' | ', $result['failed'] )
+					)
+					: '' ),
+				! empty( $result['failed'] )
+					? wp_json_encode( $result['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
+					: null
 			);
 			return;
 		}
@@ -273,6 +321,64 @@ class DSB_Admin {
 			__( 'ارسال ناموفق', 'daily-bale-post' ),
 			$result['message'],
 			wp_json_encode( $result['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
+		);
+	}
+
+	/**
+	 * بررسی اتصال یک کانال، بدون ارسال پست.
+	 *
+	 * @param string $target کانال.
+	 * @return void
+	 */
+	private function do_check( $target ) {
+		$this->save_posted();
+
+		if ( ! $target ) {
+			$this->notice( 'error', __( 'کانال مشخص نشد', 'daily-bale-post' ), __( 'کانالی برای بررسی انتخاب نشد.', 'daily-bale-post' ) );
+			return;
+		}
+
+		$result = $this->publisher->check( $target );
+
+		$this->notice(
+			! empty( $result['ok'] ) ? 'success' : 'error',
+			! empty( $result['ok'] )
+				? __( 'اتصال برقرار است', 'daily-bale-post' )
+				: __( 'اتصال برقرار نشد', 'daily-bale-post' ),
+			$result['message'],
+			empty( $result['ok'] ) && ! empty( $result['raw'] )
+				? wp_json_encode( $result['raw'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
+				: null
+		);
+	}
+
+	/**
+	 * پیش‌نمایش متن پیام یک کانال، بدون ارسال.
+	 *
+	 * @param string $target کانال.
+	 * @return void
+	 */
+	private function do_preview( $target ) {
+		$this->save_posted();
+
+		if ( ! $target ) {
+			$this->notice( 'error', __( 'کانال مشخص نشد', 'daily-bale-post' ), __( 'کانالی برای پیش‌نمایش انتخاب نشد.', 'daily-bale-post' ) );
+			return;
+		}
+
+		$result = $this->publisher->preview( $target );
+
+		if ( empty( $result['ok'] ) ) {
+			$this->notice( 'error', __( 'پیش‌نمایش ساخته نشد', 'daily-bale-post' ), $result['message'] );
+			return;
+		}
+
+		$this->notice(
+			'success',
+			__( 'پیش‌نمایش پیام', 'daily-bale-post' ),
+			$result['message'],
+			$result['text'],
+			'rtl'
 		);
 	}
 
@@ -298,10 +404,11 @@ class DSB_Admin {
 	 * @param string      $type    success یا error.
 	 * @param string      $title   عنوان.
 	 * @param string      $message متن.
-	 * @param string|null $details جزئیات فنی.
+	 * @param string|null $details جزئیات فنی یا متن پیش‌نمایش.
+	 * @param string      $dir     جهت نمایش جزئیات: ltr یا rtl.
 	 * @return void
 	 */
-	private function notice( $type, $title, $message, $details = null ) {
+	private function notice( $type, $title, $message, $details = null, $dir = 'ltr' ) {
 		set_transient(
 			self::NOTICE_TRANSIENT . get_current_user_id(),
 			array(
@@ -309,6 +416,7 @@ class DSB_Admin {
 				'title'   => $title,
 				'message' => $message,
 				'details' => $details,
+				'dir'     => 'rtl' === $dir ? 'rtl' : 'ltr',
 			),
 			60
 		);
@@ -354,9 +462,10 @@ class DSB_Admin {
 			return;
 		}
 
-		$s      = $this->settings->all();
-		$notice = $this->pull_notice();
-		$report = $this->health->report( $this->scheduler );
+		$s        = $this->settings->all();
+		$notice   = $this->pull_notice();
+		$report   = $this->health->report( $this->scheduler );
+		$channels = $this->publisher->status();
 
 		include DSB_PATH . 'includes/views/settings-page.php';
 	}

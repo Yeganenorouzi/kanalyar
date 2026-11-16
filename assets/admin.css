@@ -9,6 +9,7 @@
 	--dsb-font: 'Vazirmatn', Tahoma, sans-serif;
 	--dsb-c-connect: #2563eb;
 	--dsb-c-content: #9333ea;
+	--dsb-c-telegram: #229ed9;
 	--dsb-c-schedule: #ea580c;
 	--dsb-c-history: #059669;
 	--dsb-c-health: #0891b2;
@@ -146,6 +147,7 @@
 
 .dsb-card--connect { --accent: var(--dsb-c-connect); }
 .dsb-card--content { --accent: var(--dsb-c-content); }
+.dsb-card--telegram { --accent: var(--dsb-c-telegram); }
 .dsb-card--schedule { --accent: var(--dsb-c-schedule); }
 .dsb-card--history { --accent: var(--dsb-c-history); }
 .dsb-card--health { --accent: var(--dsb-c-health); }
@@ -419,4 +421,134 @@
 
 .dsb-footer a:hover {
 	text-decoration: underline;
+}
+
+/* ─── کارت کانال‌ها (نسخه ۴.۳) ─── */
+.dsb-card--master { --accent: var(--dsb-c-health); }
+
+.dsb-channel.is-off {
+	opacity: .72;
+	background: #fafafa;
+}
+
+.dsb-chan-badge {
+	font-size: 12px;
+	font-weight: 500;
+	border-radius: 999px;
+	padding: 3px 10px;
+	margin-inline-start: auto;
+	white-space: nowrap;
+}
+
+.dsb-chan-badge--ok {
+	background: #ecfdf5;
+	color: #047857;
+}
+
+.dsb-chan-badge--warn {
+	background: #fffbeb;
+	color: #b45309;
+}
+
+.dsb-chan-badge--off {
+	background: #f3f4f6;
+	color: #6b7280;
+}
+
+.dsb-chan-summary {
+	margin: 0 0 6px;
+	list-style: none;
+	padding: 0;
+}
+
+.dsb-chan-summary li {
+	margin: 0 0 4px;
+}
+
+.dsb-chan-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 6px;
+	padding-top: 10px;
+	border-top: 1px dashed #e2e4e7;
+}
+
+textarea.dsb-template {
+	width: 100%;
+	max-width: 680px;
+	font-family: Vazirmatn, Tahoma, sans-serif;
+	font-size: 13px;
+	line-height: 1.9;
+}
+
+.dsb-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 6px 0;
+}
+
+.dsb-chip {
+	font-family: Consolas, Menlo, monospace;
+	font-size: 11px;
+	direction: ltr;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 999px;
+	padding: 2px 9px;
+	cursor: pointer;
+	transition: .15s ease;
+}
+
+.dsb-chip:hover {
+	background: var(--dsb-primary);
+	border-color: var(--dsb-primary);
+	color: #fff;
+}
+
+.dsb-template-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 6px 0;
+}
+
+.dsb-template-help {
+	margin-top: 8px;
+	font-size: 12px;
+}
+
+.dsb-template-help summary {
+	cursor: pointer;
+	color: var(--dsb-primary-dark, #1d4ed8);
+}
+
+.dsb-template-help ul {
+	margin: 8px 0 8px 0;
+	columns: 2;
+	column-gap: 24px;
+}
+
+.dsb-template-help code {
+	font-size: 11px;
+}
+
+@media screen and (max-width: 782px) {
+	.dsb-template-help ul {
+		columns: 1;
+	}
+}
+
+/* دکمه‌ی پیش‌فرض فرم: دیده نمی‌شود ولی Enter را به «ذخیره» می‌برد. */
+.dsb-default-submit {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
 }
