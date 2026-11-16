@@ -207,7 +207,7 @@ class DSB_Health {
 		$panel = admin_url( 'admin.php?page=dsb-settings' );
 
 		/* translators: %s: نام سایت. */
-		$subject = sprintf( __( '[%s] ارسال روزانه به بله انجام نشده است', 'daily-bale-post' ), $site );
+		$subject = sprintf( __( '[%s] ارسال روزانه به کانال‌ها انجام نشده است', 'daily-bale-post' ), $site );
 
 		$lines = array();
 

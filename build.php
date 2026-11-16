@@ -15,8 +15,11 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 
 $root = __DIR__;
-$slug = basename( $root );
 $dist = $root . '/dist';
+
+// نام پوشه‌ی افزونه در بسته. عمداً به نام پوشه‌ی کاری وابسته نیست،
+// تا نام دلخواه توسعه‌دهنده روی خروجی و مسیر نصب اثر نگذارد.
+$slug = 'daily-bale-post';
 
 // ── نسخه را از هدر افزونه بخوان ───────────────────────
 $header = file_get_contents( $root . '/' . 'daily-bale-post.php' );

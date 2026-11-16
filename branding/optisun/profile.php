@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 return array(
 	'name'  => 'آژانس دیجیتال مارکتینگ اپتیسان',
-	'label' => 'افزونه‌ی ارسال روزانه به بله',
+	'label' => 'افزونه‌ی ارسال روزانه به بله و تلگرام',
 	'phone' => '02188830601',
 	'site'  => 'https://optisun.ir/',
 	'logo'  => 'logo.svg',

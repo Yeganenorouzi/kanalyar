@@ -136,7 +136,7 @@ class DSB_Scheduler {
 	public function add_interval( $schedules ) {
 		$schedules[ self::INTERVAL ] = array(
 			'interval' => self::INTERVAL_SECONDS,
-			'display'  => __( 'هر ۵ دقیقه (ارسال به بله)', 'daily-bale-post' ),
+			'display'  => __( 'هر ۵ دقیقه (ارسال به بله و تلگرام)', 'daily-bale-post' ),
 		);
 
 		return $schedules;
@@ -349,10 +349,11 @@ class DSB_Scheduler {
 	 *
 	 * سهمیه‌ی روزانه را مصرف نمی‌کند تا پست خودکار همان روز هم ارسال شود.
 	 *
+	 * @param string $only فقط این کانال (خالی = همه‌ی کانال‌های فعال).
 	 * @return array
 	 */
-	public function run_now() {
-		return $this->publisher->publish( 'manual' );
+	public function run_now( $only = '' ) {
+		return $this->publisher->publish( 'manual', $only );
 	}
 
 	/**
